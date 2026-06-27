@@ -10,12 +10,12 @@
 #include <ranges> 
 
 struct Hash {
-  ByteArray value{};
+  HashByteArray value{};
   auto operator<=>(Hash const&) const = default;
   
   constexpr Hash() noexcept = default;
-  constexpr explicit Hash(ByteArray const& valueV) noexcept : value(valueV) {}
-  constexpr explicit Hash(ByteSpan const& sourceV) noexcept {
+  constexpr explicit Hash(HashByteArray const& valueV) noexcept : value(valueV) {}
+  constexpr explicit Hash(HashByteSpan const& sourceV) noexcept {
     std::ranges::copy(sourceV, value.begin());
   }
   
@@ -33,6 +33,9 @@ struct Hash {
     }
   }
 
+  static Hash fromFile(FilePath const& path);
+  static Hash fromBytes(ByteSpan bytes);
+  
   private:
     static std::uint8_t parseChar(char character) {
       if(character >= '0' && character <= '9') {

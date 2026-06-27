@@ -198,7 +198,7 @@ Manifest ManifestStore::load() const {
   for (std::uint64_t i = 0; i < count; ++i) {
     FilePath absPath = readString(in);
 
-    ByteArray hashBytes{};
+    HashByteArray hashBytes{};
     readRaw(in, hashBytes.data(), hashBytes.size());
     Hash hash(hashBytes);
 
