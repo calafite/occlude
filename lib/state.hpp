@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.hpp"
 #include "hash.hpp"
 #include "wallpapers.hpp"
 
@@ -26,6 +27,7 @@ struct Manifest {
   std::vector<std::unique_ptr<Wallpaper>> wallpapers;
   std::unordered_map<Hash, std::size_t> byHash;
 
+  Manifest() = default;
   Manifest(State currentState);
 
   std::optional<const Wallpaper &> find(Hash const &hash) const {

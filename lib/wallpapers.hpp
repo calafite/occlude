@@ -1,13 +1,9 @@
 #pragma once
 
+#include "common.hpp"
 #include "hash.hpp"
-#include <chrono>
 #include <cstdint>
-#include <filesystem>
 #include <optional>
-
-using Timestamp = std::chrono::system_clock::time_point;
-using FilePath = std::filesystem::path;
 
 enum class Visibility : std::uint8_t {
   Safe,

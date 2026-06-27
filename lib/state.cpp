@@ -1,3 +1,4 @@
+#include "common.hpp"
 #include "state.hpp"
 #include "wallpapers.hpp"
 #include "hash.hpp"

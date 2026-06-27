@@ -1,20 +1,13 @@
 #pragma once
 
-#include <array>
+#include "common.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <span>
 #include <string_view>
 #include <stdexcept>
-#include <ranges>
-
-const size_t HASH_SIZE = 32;
-const size_t UINT_SIZE = sizeof(std::size_t);
-
-using ByteArray = std::array<std::byte, HASH_SIZE>;
-using ByteSpan = std::span<const std::byte, HASH_SIZE>; 
-using HashChunk = std::array<std::byte, UINT_SIZE>; 
+#include <ranges> 
 
 struct Hash {
   ByteArray value{};
