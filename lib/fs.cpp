@@ -63,7 +63,7 @@ void RealFileSystem::write(FilePath const& path, ByteSpan bytes) {
 
 void RealFileSystem::sync(FilePath const& path) {
   const std::string pathStr = path.string();
-  const auto *const cPath = pathStr.c_str();
+  const auto* const cPath = pathStr.c_str();
   FILE* file = std::fopen(cPath, "rb"); // NOLINT(cppcoreguidelines-owning-memory)
   const bool fileOpen = static_cast<bool>(file);
   if(!fileOpen) {
@@ -134,7 +134,7 @@ void VirtualFileSystem::write(FilePath const& path, ByteSpan bytes) {
 void VirtualFileSystem::sync(FilePath const& path) {
   // virtual file system is always synced
   // as it exists exclusively in memory
-  (void)path;
+  (void) path;
 }
 
 void VirtualFileSystem::move(MoveOperation& moveOperation) {

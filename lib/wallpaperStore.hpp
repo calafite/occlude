@@ -4,6 +4,7 @@
 #include "hash.hpp"
 #include "state.hpp"
 #include "wallpapers.hpp"
+
 #include <chrono>
 #include <expected>
 
@@ -16,7 +17,8 @@ enum class ResolveError : std::uint8_t {
 template<FileSystem FS>
 struct WallpaperStore {
   WallpaperStore(Manifest& manifestRef, FS& filesystem, FilePath publicRootV, FilePath privateRootV)
-      : manifest(manifestRef), fs(filesystem), publicRoot(std::move(publicRootV)), privateRoot(std::move(privateRootV)) {}
+      : manifest(manifestRef), fs(filesystem), publicRoot(std::move(publicRootV)),
+        privateRoot(std::move(privateRootV)) {}
 
   [[nodiscard]] std::expected<FilePath, ResolveError> resolve(Hash const& hash) const {
     auto found = manifest.get().find(hash);
@@ -47,12 +49,7 @@ struct WallpaperStore {
     MoveOperation moveOp{.from = sourcePath, .to = destination};
     fs.get().move(moveOp);
 
-    manifest.get().registerWallpaper(
-        destination,
-        hash,
-        std::chrono::system_clock::now(),
-        visibility
-    );
+    manifest.get().registerWallpaper(destination, hash, std::chrono::system_clock::now(), visibility);
     return hash;
   }
 
