@@ -33,11 +33,10 @@ struct Hash {
     }
   }
 
-  static Hash fromFile(FilePath const& path);
   static Hash fromBytes(ByteSpan bytes);
 
 private:
-  static std::uint8_t parseChar(char character) {
+  static constexpr std::uint8_t parseChar(char character) {
     if(character >= '0' && character <= '9') {
       return character - '0';
     }
