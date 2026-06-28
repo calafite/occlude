@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 #include "hash.hpp"
+
 #include <cstdint>
 #include <optional>
 
@@ -18,8 +19,15 @@ struct Wallpaper {
   Visibility visibility = Visibility::Unclassified;
   std::optional<Timestamp> lastShown;
 
-  Wallpaper(FilePath absPathV, Hash hashV, Timestamp createdAtV,
-            Visibility visibilityV, std::optional<Timestamp> lastShownV)
-      : absPath(std::move(absPathV)), hash(hashV), createdAt(createdAtV),
-        visibility(visibilityV), lastShown(lastShownV) {}
+  Wallpaper(
+      FilePath absPathV,
+      Hash hashV,
+      Timestamp createdAtV,
+      Visibility visibilityV,
+      std::optional<Timestamp> lastShownV
+  ) : absPath(std::move(absPathV)),
+      hash(hashV),
+      createdAt(createdAtV),
+      visibility(visibilityV),
+      lastShown(lastShownV) {}
 };

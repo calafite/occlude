@@ -47,11 +47,20 @@ struct Manifest {
     return std::nullopt;
   }
 
-  void loadWallpaper(FilePath absPath, Hash hash, Timestamp createdAt,
-                     Visibility visibility, std::optional<Timestamp> lastShown);
+  void loadWallpaper(
+    FilePath absPath,
+    Hash hash,
+    Timestamp createdAt,
+    Visibility visibility,
+    std::optional<Timestamp> lastShown
+  );
 
-  void registerWallpaper(FilePath absPath, Hash hash, Timestamp createdAt,
-                         Visibility visibility);
+  void registerWallpaper(
+    FilePath absPath,
+    Hash hash,
+    Timestamp createdAt,
+    Visibility visibility
+  );
 
   void deleteWallpaper(Hash hash);
 };
