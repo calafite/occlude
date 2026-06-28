@@ -30,6 +30,10 @@ struct Manifest {
   Manifest() = default;
   Manifest(State currentState);
 
+  std::vector<ConstReference<Wallpaper>> query(Visibility visibility) const;
+  std::vector<ConstReference<Wallpaper>> current() const;
+  std::vector<ConstReference<Wallpaper>> all() const;
+
   std::optional<const Wallpaper &> find(Hash const &hash) const {
     auto iterator = byHash.find(hash);
     bool exists = iterator != byHash.end();
@@ -43,20 +47,11 @@ struct Manifest {
     return std::nullopt;
   }
 
-  void loadWallpaper(
-    FilePath absPath,
-    Hash hash,
-    Timestamp createdAt,
-    Visibility visibility,
-    std::optional<Timestamp> lastShown
-  );
+  void loadWallpaper(FilePath absPath, Hash hash, Timestamp createdAt,
+                     Visibility visibility, std::optional<Timestamp> lastShown);
 
-  void registerWallpaper(
-    FilePath absPath,
-    Hash hash,
-    Timestamp createdAt,
-    Visibility visibility
-  );
-  
+  void registerWallpaper(FilePath absPath, Hash hash, Timestamp createdAt,
+                         Visibility visibility);
+
   void deleteWallpaper(Hash hash);
 };

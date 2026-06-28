@@ -5,9 +5,9 @@
 
 struct ManifestStore {
   ManifestStore(FilePath manifestPath);
-  [[nodiscard]] Manifest load() const;   
-  void save(Manifest const& manifest) const;
+  [[nodiscard]] Manifest load() const;
+  void save(Manifest const &manifest) const;
 
-  private:
-    FilePath path;
+private:
+  FilePath path;
 };
