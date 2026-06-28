@@ -134,6 +134,7 @@ void VirtualFileSystem::write(FilePath const& path, ByteSpan bytes) {
 void VirtualFileSystem::sync(FilePath const& path) {
   // virtual file system is always synced
   // as it exists exclusively in memory
+  (void)path;
 }
 
 void VirtualFileSystem::move(MoveOperation& moveOperation) {
