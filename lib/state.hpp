@@ -34,13 +34,13 @@ struct Manifest {
   std::vector<ConstReference<Wallpaper>> current() const;
   std::vector<ConstReference<Wallpaper>> all() const;
 
-  std::optional<const Wallpaper &> find(Hash const &hash) const {
+  std::optional<const Wallpaper&> find(Hash const& hash) const {
     auto iterator = byHash.find(hash);
     bool exists = iterator != byHash.end();
-    if (exists) {
+    if(exists) {
       std::size_t index = iterator->second;
       bool withinBounds = index < wallpapers.size();
-      if (withinBounds) {
+      if(withinBounds) {
         return *wallpapers[index];
       }
     }
@@ -48,18 +48,18 @@ struct Manifest {
   }
 
   void loadWallpaper(
-    FilePath absPath,
-    Hash hash,
-    Timestamp createdAt,
-    Visibility visibility,
-    std::optional<Timestamp> lastShown
+      FilePath absPath,                  //
+      Hash hash,                         //
+      Timestamp createdAt,               //
+      Visibility visibility,             //
+      std::optional<Timestamp> lastShown //
   );
 
   void registerWallpaper(
-    FilePath absPath,
-    Hash hash,
-    Timestamp createdAt,
-    Visibility visibility
+      FilePath absPath,     //
+      Hash hash,            //
+      Timestamp createdAt,  //
+      Visibility visibility //
   );
 
   void deleteWallpaper(Hash hash);

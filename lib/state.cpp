@@ -28,15 +28,32 @@ void Manifest::loadWallpaper(
   auto existing = byHash.find(hash);
   if(existing != byHash.end()) {
     std::size_t index = existing->second;
-    wallpapers[index] = std::make_unique<Wallpaper>(std::move(absPath), hash, createdAt, visibility, lastShown);
+    wallpapers[index] = std::make_unique<Wallpaper>(
+        std::move(absPath), //
+        hash,               //
+        createdAt,          //
+        visibility,         //
+        lastShown           //
+    );
     return;
   }
-  auto wallpaper = std::make_unique<Wallpaper>(std::move(absPath), hash, createdAt, visibility, lastShown);
+  auto wallpaper = std::make_unique<Wallpaper>(
+      std::move(absPath), //
+      hash,               //
+      createdAt,          //
+      visibility,         //
+      lastShown           //
+  );
   byHash[hash] = wallpapers.size();
   wallpapers.push_back(std::move(wallpaper));
 }
 
-void Manifest::registerWallpaper(FilePath absPath, Hash hash, Timestamp createdAt, Visibility visibility) {
+void Manifest::registerWallpaper(
+    FilePath absPath,     //
+    Hash hash,            //
+    Timestamp createdAt,  //
+    Visibility visibility //
+) {
   loadWallpaper(std::move(absPath), hash, createdAt, visibility, std::nullopt);
 }
 

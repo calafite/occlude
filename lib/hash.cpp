@@ -28,7 +28,12 @@ Hash Hash::fromFile(const FilePath& path) {
   }
 
   std::vector<unsigned char> digest(picosha2::k_digest_size);
-  picosha2::hash256(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>(), digest.begin(), digest.end());
+  picosha2::hash256(
+      std::istreambuf_iterator<char>(in), //
+      std::istreambuf_iterator<char>(),   //
+      digest.begin(),                     //
+      digest.end()                        //
+  );
 
   bool correctSize = digest.size() == HASH_SIZE;
   if(!correctSize) {
@@ -46,7 +51,12 @@ Hash Hash::fromBytes(ByteSpan bytes) {
   std::ranges::transform(bytes, input.begin(), castChar);
 
   std::vector<unsigned char> digest(picosha2::k_digest_size);
-  picosha2::hash256(input.begin(), input.end(), digest.begin(), digest.end());
+  picosha2::hash256(
+      input.begin(),  //
+      input.end(),    //
+      digest.begin(), //
+      digest.end()    //
+  );
 
   HashByteArray rBytes{};
   std::ranges::transform(digest, rBytes.begin(), castByte);
