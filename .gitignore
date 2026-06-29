@@ -1,1 +1,8 @@
-.clang*
+daemon_deps/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+.clang-tidy
+.clang-format
+_deps/
+Makefile
