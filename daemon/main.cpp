@@ -12,7 +12,6 @@
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 int main() {
-  // Ignore SIGPIPE to prevent daemon termination if a client disconnects unexpectedly
   std::signal(SIGPIPE, SIG_IGN);
 
   const char* const home = std::getenv("HOME");
@@ -94,8 +93,28 @@ int main() {
           continue;
         }
         const FilePath path = msg.argument;
-        engine.wallpaperStore.ingest(path, Visibility::Safe);
+
+        bool wasActive = false;
+        auto currentResult = SystemCommandRunner::runYieldOutput(settings.getterCommandTemplate);
+        if(currentResult) {
+          const FilePath absPath = resolveTilde(path);
+          const FilePath absCurrent = resolveTilde(*currentResult);
+          if(absPath == absCurrent) {
+            wasActive = true;
+          }
+        }
+
+        const Hash hash = engine.wallpaperStore.ingest(path, Visibility::Safe);
         engine.manifestStore.save(engine.manifest);
+
+        if(wasActive) {
+          if(engine.manifest.state.stateMode == StateMode::Safe) {
+            engine.applyWallpaper(hash);
+          } else {
+            engine.cycle();
+          }
+        }
+
         const auto _ = conn.send("OK Ingested safe wallpaper");
         continue;
       }
@@ -108,8 +127,28 @@ int main() {
           continue;
         }
         const FilePath path = msg.argument;
-        engine.wallpaperStore.ingest(path, Visibility::Unsafe);
+
+        bool wasActive = false;
+        auto currentResult = SystemCommandRunner::runYieldOutput(settings.getterCommandTemplate);
+        if(currentResult) {
+          const FilePath absPath = resolveTilde(path);
+          const FilePath absCurrent = resolveTilde(*currentResult);
+          if(absPath == absCurrent) {
+            wasActive = true;
+          }
+        }
+
+        const Hash hash = engine.wallpaperStore.ingest(path, Visibility::Unsafe);
         engine.manifestStore.save(engine.manifest);
+
+        if(wasActive) {
+          if(engine.manifest.state.stateMode == StateMode::Unsafe) {
+            engine.applyWallpaper(hash);
+          } else {
+            engine.cycle();
+          }
+        }
+
         const auto _ = conn.send("OK Ingested unsafe wallpaper");
         continue;
       }
@@ -131,5 +170,6 @@ int main() {
       const auto _ = conn.send(std::format("ERR {}", ex.what()));
     }
   }
+
   return 0;
 }
