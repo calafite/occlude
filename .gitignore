@@ -6,3 +6,4 @@ cmake_install.cmake
 .clang-format
 _deps/
 Makefile
+build.sh
