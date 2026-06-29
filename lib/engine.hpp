@@ -55,7 +55,6 @@ struct Engine {
     applyWallpaper(oldest->get().hash);
   }
 
-  // Toggles between SFW and NSFW modes
   void toggleMode() {
     if(manifest.state.stateMode == StateMode::Safe) {
       manifest.state.stateMode = StateMode::Unsafe;
