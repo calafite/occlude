@@ -8,4 +8,5 @@ struct Settings {
   FilePath privateRoot;
   FilePath manifestPath;
   std::string setterCommandTemplate = "noctalia msg wallpaper-set {path}";
+  std::string getterCommandTemplate = "noctalia msg wallpaper-get";
 };

@@ -9,6 +9,7 @@
 #include "wallpapers.hpp"
 
 #include <chrono>
+#include <exception>
 #include <format>
 #include <iostream>
 
@@ -32,8 +33,11 @@ struct Engine {
   WallpaperSetter<Runner> setter;
 
   Engine(FS& fs, Runner& runner, Settings s)
-      : settings(std::move(s)), manifestStore(fs, settings.manifestPath), manifest(manifestStore.load()),
-        wallpaperStore(manifest, fs, settings.publicRoot, settings.privateRoot), setter(runner, settings) {}
+      : settings(std::move(s)),                                                  //
+        manifestStore(fs, settings.manifestPath),                                //
+        manifest(manifestStore.load()),                                          //
+        wallpaperStore(manifest, fs, settings.publicRoot, settings.privateRoot), //
+        setter(runner, settings) {}                                              //
 
   void cycle() {
     auto available = manifest.current();
@@ -55,17 +59,33 @@ struct Engine {
     applyWallpaper(oldest->get().hash);
   }
 
-  // Toggles between SFW and NSFW modes
   void toggleMode() {
+    std::optional<std::string> targetHashHex;
     if(manifest.state.stateMode == StateMode::Safe) {
       manifest.state.stateMode = StateMode::Unsafe;
+      targetHashHex = manifest.state.privateCurrent;
       std::cout << "Engine: Switched to UNSAFE mode.\n";
     } else {
       manifest.state.stateMode = StateMode::Safe;
+      targetHashHex = manifest.state.publicCurrent;
       std::cout << "Engine: Switched to SAFE mode.\n";
     }
 
-    cycle();
+    bool hasTarget = targetHashHex.has_value();
+    if(hasTarget) {
+      try {
+        Hash targetHash(*targetHashHex);
+        auto found = manifest.find(targetHash);
+        auto foundVisibility = found.value().visibility;
+        Visibility expected = state_helper::fromState(manifest.state.stateMode);
+        if(found && foundVisibility == expected) {
+          applyWallpaper(targetHash);
+          return; 
+        }
+      } catch(std::exception const&) {
+          cycle();
+      }
+    }
   }
 
   void applyWallpaper(Hash const& hash) {

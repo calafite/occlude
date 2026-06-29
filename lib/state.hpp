@@ -64,3 +64,15 @@ struct Manifest {
 
   void deleteWallpaper(Hash hash);
 };
+
+namespace state_helper {
+  inline Visibility fromState(StateMode state) {
+    switch(state) {
+    case StateMode::Safe:
+      return Visibility::Safe;
+    case StateMode::Unsafe:
+      return Visibility::Unsafe;
+    }
+    std::unreachable();
+  }
+} // namespace state_helper

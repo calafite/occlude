@@ -15,7 +15,8 @@ namespace cli {
                 << "  toggle                Toggle between Safe/Unsafe modes\n"
                 << "  ingest_safe <path>    Add a new safe wallpaper\n"
                 << "  ingest_unsafe <path>  Add a new unsafe wallpaper\n"
-                << "  status                Print daemon status\n";
+                << "  status                Print daemon status\n"
+                << "  current               Get the current wallpaper\n";
     }
 
     [[nodiscard]] static std::optional<std::string> parse(int argc, char** argv) {
@@ -74,6 +75,11 @@ namespace cli {
         }
 
         return "INGEST_UNSAFE " + absPath.string();
+      }
+
+      const bool isCurrent = command == "current";
+      if(isCurrent) {
+        return "CURRENT";
       }
 
       std::cerr << "Error: Unknown command '" << command << "'\n";

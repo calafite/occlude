@@ -8,18 +8,6 @@
 #include <optional>
 #include <utility>
 
-namespace {
-  Visibility fromState(StateMode state) {
-    switch(state) {
-    case StateMode::Safe:
-      return Visibility::Safe;
-    case StateMode::Unsafe:
-      return Visibility::Unsafe;
-    }
-    std::unreachable();
-  }
-} // namespace
-
 Manifest::Manifest(State currentState) : state(std::move(currentState)) {}
 
 void Manifest::loadWallpaper(
@@ -92,7 +80,7 @@ std::vector<ConstReference<Wallpaper>> Manifest::query(Visibility visibility) co
 }
 
 std::vector<ConstReference<Wallpaper>> Manifest::current() const {
-  auto currentVisibility = fromState(state.stateMode);
+  auto currentVisibility = state_helper::fromState(state.stateMode);
   return query(currentVisibility);
 }
 

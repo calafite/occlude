@@ -126,11 +126,12 @@ namespace IPC {
     Server(Server&& other) noexcept : fileDescriptor(other.fileDescriptor), path(std::move(other.path)) {
       other.fileDescriptor = -1;
     }
+
     Server& operator=(Server&& other) noexcept {
-      const bool isSelfAssignment = this == &other;
-      if(!isSelfAssignment) {
-        const bool fileDescriptorValid = fileDescriptor != -1;
-        if(fileDescriptorValid) {
+      const bool selfAssignment = this == &other;
+      if(!selfAssignment) {
+        const bool descriptorValid = fileDescriptor != -1;
+        if(descriptorValid) {
           close(fileDescriptor);
           const auto* const cPath = path.c_str();
           ::unlink(cPath);
@@ -147,13 +148,12 @@ namespace IPC {
 
       server.path = getSocketPath();
       server.fileDescriptor = ::socket(AF_UNIX, SOCK_STREAM, 0);
-      const bool socketCreationFailed = server.fileDescriptor == -1;
-      if(socketCreationFailed) {
+      const bool creationFailed = server.fileDescriptor == -1;
+      if(creationFailed) {
         return std::unexpected(Error::SocketCreation);
       }
 
-      const std::string serverPath = server.path;
-      const auto* const cServerPath = serverPath.c_str();
+      const auto* const cServerPath = server.path.c_str();
       ::unlink(cServerPath);
 
       sockaddr_un address{};

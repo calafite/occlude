@@ -115,6 +115,17 @@ int main() {
       logging::error("Exception caught while executing command '{}': {}", cmd, ex.what());
       const auto _ = conn.send(std::format("ERR {}", ex.what()));
     }
+
+    const bool isCurrent = cmd == "CURRENT";
+    if(isCurrent) {
+      auto out = SystemCommandRunner::runYieldOutput(settings.getterCommandTemplate);
+      if(static_cast<bool>(out)) {
+        const auto _ = conn.send("OK" + *out);
+      } else {
+        const auto _ = conn.send("ERR Failed to get current wallpaper");
+      }
+      continue;
+    }
   }
 
   return 0;

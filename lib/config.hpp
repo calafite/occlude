@@ -14,7 +14,8 @@ void to_json(nlohmann::json& j, Settings const& settings) {
       {"publicRoot", settings.publicRoot.string()},
       {"privateRoot", settings.privateRoot.string()},
       {"manifestPath", settings.manifestPath.string()},
-      {"setterCommandTemplate", settings.setterCommandTemplate}
+      {"setterCommandTemplate", settings.setterCommandTemplate},
+      {"getterCommandTemplate", settings.getterCommandTemplate}
   };
 }
 
@@ -23,6 +24,7 @@ void from_json(nlohmann::json const& j, Settings& settings) {
   settings.privateRoot = j.at("privateRoot").get<std::string>();
   settings.manifestPath = j.at("manifestPath").get<std::string>();
   settings.setterCommandTemplate = j.at("setterCommandTemplate").get<std::string>();
+  settings.getterCommandTemplate = j.at("getterCommandTemplate").get<std::string>();
 }
 // NOLINTEND
 
@@ -44,7 +46,8 @@ struct ConfigManager {
           .publicRoot = configDir / "public",
           .privateRoot = configDir / "private",
           .manifestPath = configDir / "manifest.bin",
-          .setterCommandTemplate = "swww img {path} --transition-type fade"
+          .setterCommandTemplate = "noctalia msg wallpaper-set {path}",
+          .getterCommandTemplate = "noctalia msg wallpaper-get"
       };
       saveConfig(configPath, defaultSettings);
       return defaultSettings;
