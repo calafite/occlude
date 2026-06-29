@@ -1,10 +1,10 @@
 #include "../lib/common.hpp"
 #include "../lib/config.hpp"
 #include "../lib/engine.hpp"
-#include "../lib/log.hpp"
 #include "../lib/ipc.hpp"
-#include "parsing.hpp"
+#include "../lib/log.hpp"
 #include "../lib/setter.hpp"
+#include "parsing.hpp"
 
 #include <filesystem>
 #include <string>

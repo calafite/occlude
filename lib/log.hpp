@@ -1,5 +1,6 @@
 #pragma once
 #include "common.hpp"
+
 #include <chrono>
 #include <cstdint>
 #include <format>
@@ -10,10 +11,10 @@
 
 namespace logging {
   enum class Level : std::uint8_t {
-    Info, // 
-    Warn, // 
-    Error, // 
-    Debug // 
+    Info,  //
+    Warn,  //
+    Error, //
+    Debug  //
   };
 
   struct Logger {
@@ -33,15 +34,15 @@ namespace logging {
       logFile.open(logFilePath, std::ios::app);
     }
 
-    template <typename... Args>
+    template<typename... Args>
     void info(std::format_string<Args...> fmt, Args&&... args) {
       logOut(Level::Info, std::format(fmt, std::forward<Args>(args)...));
     }
-    template <typename... Args>
+    template<typename... Args>
     void warn(std::format_string<Args...> fmt, Args&&... args) {
       logOut(Level::Warn, std::format(fmt, std::forward<Args>(args)...));
     }
-    template <typename... Args>
+    template<typename... Args>
     void error(std::format_string<Args...> fmt, Args&&... args) {
       logOut(Level::Error, std::format(fmt, std::forward<Args>(args)...));
     }
@@ -59,26 +60,26 @@ namespace logging {
       std::string colorCode;
 
       switch(level) {
-        case Level::Info: {
-          levelStr = "INFO ";
-          colorCode = "\033[32m"; // GREEN
-          break;
-        }
-        case Level::Warn: {
-          levelStr = "WARN ";
-          colorCode = "\033[33m"; // YELLOW
-          break;
-        }
-        case Level::Error: {
-          levelStr = "ERROR";
-          colorCode = "\033[31m"; // RED
-          break;
-        }
-        case Level::Debug: {
-          levelStr = "DEBUG";
-          colorCode = "\033[36m"; // CYAN
-          break;
-        }
+      case Level::Info: {
+        levelStr = "INFO ";
+        colorCode = "\033[32m"; // GREEN
+        break;
+      }
+      case Level::Warn: {
+        levelStr = "WARN ";
+        colorCode = "\033[33m"; // YELLOW
+        break;
+      }
+      case Level::Error: {
+        levelStr = "ERROR";
+        colorCode = "\033[31m"; // RED
+        break;
+      }
+      case Level::Debug: {
+        levelStr = "DEBUG";
+        colorCode = "\033[36m"; // CYAN
+        break;
+      }
       }
 
       const bool isErrorLevel = level == Level::Error;
@@ -93,16 +94,16 @@ namespace logging {
     }
   };
 
-  template <typename... Args>
+  template<typename... Args>
   inline void info(std::format_string<Args...> fmt, Args&&... args) {
     Logger::get().info(fmt, std::forward<Args>(args)...);
   }
-  template <typename... Args>
+  template<typename... Args>
   inline void warn(std::format_string<Args...> fmt, Args&&... args) {
     Logger::get().warn(fmt, std::forward<Args>(args)...);
   }
-  template <typename... Args>
+  template<typename... Args>
   inline void error(std::format_string<Args...> fmt, Args&&... args) {
     Logger::get().error(fmt, std::forward<Args>(args)...);
   }
-} // namespace log
+} // namespace logging

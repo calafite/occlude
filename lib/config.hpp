@@ -2,6 +2,7 @@
 #include "common.hpp"
 #include "log.hpp"
 #include "settings.hpp"
+
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -13,9 +14,9 @@ void to_json(nlohmann::json& j, Settings const& settings) {
       {"publicRoot", settings.publicRoot.string()},
       {"privateRoot", settings.privateRoot.string()},
       {"manifestPath", settings.manifestPath.string()},
-      {"setterCommandTemplate", settings.setterCommandTemplate}};
+      {"setterCommandTemplate", settings.setterCommandTemplate}
+  };
 }
-
 
 void from_json(nlohmann::json const& j, Settings& settings) {
   settings.publicRoot = j.at("publicRoot").get<std::string>();
@@ -43,7 +44,8 @@ struct ConfigManager {
           .publicRoot = configDir / "public",
           .privateRoot = configDir / "private",
           .manifestPath = configDir / "manifest.bin",
-          .setterCommandTemplate = "swww img {path} --transition-type fade"};
+          .setterCommandTemplate = "swww img {path} --transition-type fade"
+      };
       saveConfig(configPath, defaultSettings);
       return defaultSettings;
     }

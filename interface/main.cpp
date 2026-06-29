@@ -1,5 +1,5 @@
-#include "cli.hpp"
 #include "../lib/ipc.hpp"
+#include "cli.hpp"
 
 #include <iostream>
 #include <string>
