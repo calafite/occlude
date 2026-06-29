@@ -1,58 +1,83 @@
+#include "../lib/common.hpp"
+#include "../lib/config.hpp"
+#include "../lib/engine.hpp"
 #include "../lib/ipc.hpp"
-#include "cli.hpp"
+#include "../lib/log.hpp"
+#include "../lib/setter.hpp"
+#include "dispatcher.hpp"
+#include "parsing.hpp"
+#include "scanner.hpp"
 
-#include <algorithm>
-#include <iostream>
+#include <csignal>
+#include <filesystem>
+#include <mutex>
 #include <string>
 
-int main(int argc, char** argv) {
-  const auto payloadResult = cli::Parser::parse(argc, argv);
-  const bool payloadParsed = payloadResult.has_value();
-  if(!payloadParsed) {
+int main() {
+  std::signal(SIGPIPE, SIG_IGN);
+
+  const char* const home = std::getenv("HOME");
+  const bool hasHomeEnv = home != nullptr;
+  const std::string homeDir = hasHomeEnv ? std::string(home) : "/tmp";
+  const std::string logPath = homeDir + "/.config/occlude/daemon.log";
+
+  logging::Logger::get().init(logPath);
+  logging::info("Starting occlude daemon...");
+
+  const Settings settings = ConfigManager::loadOrInit();
+
+  std::filesystem::create_directories(settings.publicRoot);
+  std::filesystem::create_directories(settings.privateRoot);
+
+  RealFileSystem rfs;
+  SystemCommandRunner runner;
+  Engine<RealFileSystem, SystemCommandRunner> engine(rfs, runner, settings);
+
+  std::mutex engineMutex;
+
+  WallpaperScanner scanner(engine, engineMutex, settings);
+  scanner.start();
+
+  CommandDispatcher dispatcher(engine, engineMutex, settings);
+
+  auto serverResult = IPC::Server::create();
+  const bool serverCreated = serverResult.has_value();
+  if(!serverCreated) {
+    logging::error("Fatal: Failed to create IPC socket.");
     return 1;
   }
+  logging::info("Listening for IPC on {}", serverResult->path);
 
-  auto connResult = IPC::connect();
-  const bool connConnected = connResult.has_value();
-  if(!connConnected) {
-    std::cerr << "\033[31m✖ Error:\033[0m Could not connect to daemon. Is 'occluded' running?\n";
-    return 1;
+  while(true) {
+    auto connResult = serverResult->accept();
+    const bool connAccepted = connResult.has_value();
+    if(!connAccepted) {
+      continue;
+    }
+
+    auto& conn = *connResult;
+    auto msgResult = conn.receive();
+    const bool msgReceived = msgResult.has_value();
+    if(!msgReceived) {
+      continue;
+    }
+
+    const CommandMessage msg = parseIpcMessage(*msgResult);
+    const bool hasCommand = !msg.command.empty();
+    if(!hasCommand) {
+      continue;
+    }
+
+    logging::info("Received command: {}", msg.command);
+
+    try {
+      std::string response = dispatcher.dispatch(msg);
+      const auto _ = conn.send(response);
+    } catch(const std::exception& ex) {
+      logging::error("Exception caught while executing command '{}': {}", msg.command, ex.what());
+      const auto _ = conn.send(std::string("ERR ") + ex.what());
+    }
   }
 
-  auto& conn = *connResult;
-  const auto sendResult = conn.send(*payloadResult);
-  const bool payloadSent = sendResult.has_value();
-  if(!payloadSent) {
-    std::cerr << "\033[31m✖ Error:\033[0m Failed to send command to daemon.\n";
-    return 1;
-  }
-
-  const auto responseResult = conn.receive();
-  const bool responseReceived = responseResult.has_value();
-  if(!responseReceived) {
-    std::cerr << "\033[31m✖ Error:\033[0m Failed to read response from daemon.\n";
-    return 1;
-  }
-
-  std::string response = *responseResult;
-
-  const bool isSuccess = response.starts_with("OK ");
-  if(isSuccess) {
-    std::string msg = response.substr(3);
-    std::ranges::replace(msg, '\v', '\n');
-    std::cout << msg << "\n";
-    return 0;
-  }
-
-  const bool isError = response.starts_with("ERR ");
-  if(isError) {
-    std::string msg = response.substr(4);
-    std::replace(msg.begin(), msg.end(), '\v', '\n');
-    std::cerr << "\033[31m✖ Error:\033[0m " << msg << "\n";
-    return 1;
-  }
-
-  std::replace(response.begin(), response.end(), '\v', '\n');
-  std::cout << response << "\n";
   return 0;
 }
