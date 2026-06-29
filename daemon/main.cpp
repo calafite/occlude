@@ -6,11 +6,15 @@
 #include "../lib/setter.hpp"
 #include "parsing.hpp"
 
+#include <csignal>
 #include <filesystem>
 #include <string>
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 int main() {
+  // Ignore SIGPIPE to prevent daemon termination if a client disconnects unexpectedly
+  std::signal(SIGPIPE, SIG_IGN);
+
   const char* const home = std::getenv("HOME");
   const bool hasHomeEnv = home != nullptr;
   const std::string homeDir = hasHomeEnv ? std::string(home) : "/tmp";
@@ -110,23 +114,22 @@ int main() {
         continue;
       }
 
+      const bool isCurrent = cmd == "CURRENT";
+      if(isCurrent) {
+        auto out = SystemCommandRunner::runYieldOutput(settings.getterCommandTemplate);
+        if(static_cast<bool>(out)) {
+          const auto _ = conn.send("OK " + *out);
+        } else {
+          const auto _ = conn.send("ERR Failed to get current wallpaper");
+        }
+        continue;
+      }
+
       const auto _ = conn.send("ERR Unknown command");
     } catch(const std::exception& ex) {
       logging::error("Exception caught while executing command '{}': {}", cmd, ex.what());
       const auto _ = conn.send(std::format("ERR {}", ex.what()));
     }
-
-    const bool isCurrent = cmd == "CURRENT";
-    if(isCurrent) {
-      auto out = SystemCommandRunner::runYieldOutput(settings.getterCommandTemplate);
-      if(static_cast<bool>(out)) {
-        const auto _ = conn.send("OK" + *out);
-      } else {
-        const auto _ = conn.send("ERR Failed to get current wallpaper");
-      }
-      continue;
-    }
   }
-
   return 0;
 }
