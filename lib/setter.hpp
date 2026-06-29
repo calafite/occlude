@@ -4,11 +4,10 @@
 
 #include <array>
 #include <concepts>
-#include <cstdlib>
 #include <cstdio>
+#include <cstdlib>
 #include <expected>
 #include <string>
-
 
 enum class CommandError : std::uint8_t { ExecutionFailed };
 
@@ -20,7 +19,8 @@ concept CommandRunner = requires(T t, std::string const& cmd) {
 
 struct SystemCommandRunner {
   [[nodiscard]] static std::expected<void, CommandError> run(std::string const& cmd) {
-    int result = std::system(cmd.c_str());
+    std::string quietCmd = cmd + " > /dev/null 2>&1";
+    int result = std::system(quietCmd.c_str());
     if(result == 0) {
       return {};
     }
@@ -28,7 +28,7 @@ struct SystemCommandRunner {
   }
 
   [[nodiscard]] static std::expected<std::string, CommandError> runYieldOutput(std::string const& cmd) {
-    const auto *const cCmd = cmd.c_str();
+    const auto* const cCmd = cmd.c_str();
     FILE* pipe = popen(cCmd, "r");
 
     if(!static_cast<bool>(pipe)) {

@@ -1,6 +1,7 @@
 #pragma once
 #include "common.hpp"
 #include "hash.hpp"
+#include "log.hpp"
 #include "setter.hpp"
 #include "settings.hpp"
 #include "state.hpp"
@@ -11,7 +12,6 @@
 #include <chrono>
 #include <exception>
 #include <format>
-#include <iostream>
 
 namespace detail {
   inline std::string toHex(Hash const& hash) {
@@ -42,7 +42,7 @@ struct Engine {
   void cycle() {
     auto available = manifest.current();
     if(available.empty()) {
-      std::cerr << "Engine: No wallpapers available for current state.\n";
+      logging::error("Engine: No wallpapers available for current state.");
       return;
     }
 
@@ -64,11 +64,11 @@ struct Engine {
     if(manifest.state.stateMode == StateMode::Safe) {
       manifest.state.stateMode = StateMode::Unsafe;
       targetHashHex = manifest.state.privateCurrent;
-      std::cout << "Engine: Switched to UNSAFE mode.\n";
+      logging::info("Engine: Switched to UNSAFE mode.");
     } else {
       manifest.state.stateMode = StateMode::Safe;
       targetHashHex = manifest.state.publicCurrent;
-      std::cout << "Engine: Switched to SAFE mode.\n";
+      logging::info("Engine: Switched to SAFE mode.");
     }
 
     bool hasTarget = targetHashHex.has_value();
@@ -80,10 +80,10 @@ struct Engine {
         Visibility expected = state_helper::fromState(manifest.state.stateMode);
         if(found && foundVisibility == expected) {
           applyWallpaper(targetHash);
-          return; 
+          return;
         }
       } catch(std::exception const&) {
-          cycle();
+        cycle();
       }
     }
   }
@@ -92,13 +92,13 @@ struct Engine {
     auto resolvedPath = wallpaperStore.resolve(hash);
 
     if(!resolvedPath.has_value()) {
-      std::cerr << "Engine: Failed to resolve wallpaper path.\n";
+      logging::error("Engine: Failed to resolve wallpaper path.");
       return;
     }
 
     auto execution = setter.apply(*resolvedPath);
     if(!execution.has_value()) {
-      std::cerr << "Engine: Setter command failed to execute.\n";
+      logging::error("Engine: Setter command failed to execute.");
       return;
     }
 
@@ -120,6 +120,6 @@ struct Engine {
     }
 
     manifestStore.save(manifest);
-    std::cout << "Engine: Successfully applied " << resolvedPath->filename().string() << "\n";
+    logging::info("Engine: Successfully applied {}", resolvedPath->filename().string());
   }
 };

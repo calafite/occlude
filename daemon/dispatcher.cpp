@@ -77,7 +77,7 @@ void CommandDispatcher::registerHandlers() {
     std::lock_guard<std::mutex> lock(engineMutex.get());
     const bool isSafe = engine.get().manifest.state.stateMode == StateMode::Safe;
     const std::string mode = isSafe ? "\033[32mSAFE\033[0m" : "\033[31mUNSAFE\033[0m";
-    return "OK \033[34mℹ\033[0m Current Mode: " + mode;
+    return "OK \033[34mℹ\033[0m  Current Mode: " + mode;
   };
 
   handlers["LIST"] = [this](const CommandMessage&) {
@@ -114,7 +114,7 @@ void CommandDispatcher::registerHandlers() {
         visColor = "\033[31m"; // RED
         break;
       case Visibility::Unclassified:
-        visStr = "Unclass";
+        visStr = "Unclassified";
         visColor = "\033[33m"; // YELLOW
         break;
       }
