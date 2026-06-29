@@ -8,16 +8,19 @@
 #include <chrono>
 #include <expected>
 
-enum class ResolveError : std::uint8_t {
-  NotFound,
-  Quarantined,
-  Unmounted,
-};
+enum class ResolveError : std::uint8_t { NotFound, Quarantined, Unmounted, FileMissing };
 
 template<FileSystem FS>
 struct WallpaperStore {
-  WallpaperStore(Manifest& manifestRef, FS& filesystem, FilePath publicRootV, FilePath privateRootV)
-      : manifest(manifestRef), fs(filesystem), publicRoot(std::move(publicRootV)),
+  WallpaperStore(
+      Manifest& manifestRef, //
+      FS& filesystem,        //
+      FilePath publicRootV,  //
+      FilePath privateRootV  //
+  )
+      : manifest(manifestRef),              //
+        fs(filesystem),                     //
+        publicRoot(std::move(publicRootV)), //
         privateRoot(std::move(privateRootV)) {}
 
   [[nodiscard]] std::expected<FilePath, ResolveError> resolve(Hash const& hash) const {
@@ -34,6 +37,10 @@ struct WallpaperStore {
     FilePath const& root = wallpaper.visibility == Visibility::Unsafe ? privateRoot : publicRoot;
     if(!fs.get().exists(root)) {
       return std::unexpected(ResolveError::Unmounted);
+    }
+
+    if(!fs.get().exists(wallpaper.absPath)) {
+      return std::unexpected(ResolveError::FileMissing);
     }
 
     return wallpaper.absPath;

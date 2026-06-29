@@ -40,23 +40,32 @@ struct Engine {
         setter(runner, settings) {}                                              //
 
   void cycle() {
-    auto available = manifest.current();
-    if(available.empty()) {
-      logging::error("Engine: No wallpapers available for current state.");
-      return;
+    while(true) {
+      auto available = manifest.current();
+      if(available.empty()) {
+        logging::error("Engine: No wallpapers available for current state.");
+        return;
+      }
+
+      auto oldest = std::ranges::min_element(available, [](auto const& a, auto const& b) {
+        if(!a.get().lastShown) {
+          return true;
+        }
+        if(!b.get().lastShown) {
+          return false;
+        }
+        return *a.get().lastShown < *b.get().lastShown;
+      });
+
+      Hash oldestHash = oldest->get().hash;
+      bool success = applyWallpaper(oldestHash);
+
+      if(success) {
+        break; 
+      }
+
+      logging::warn("Engine: Cycle skipped a broken/missing wallpaper. Retrying...");
     }
-
-    auto oldest = std::ranges::min_element(available, [](auto const& a, auto const& b) {
-      if(!a.get().lastShown) {
-        return true;
-      }
-      if(!b.get().lastShown) {
-        return false;
-      }
-      return *a.get().lastShown < *b.get().lastShown;
-    });
-
-    applyWallpaper(oldest->get().hash);
   }
 
   void toggleMode() {
@@ -76,30 +85,44 @@ struct Engine {
       try {
         Hash targetHash(*targetHashHex);
         auto found = manifest.find(targetHash);
-        auto foundVisibility = found.value().visibility;
-        Visibility expected = state_helper::fromState(manifest.state.stateMode);
-        if(found && foundVisibility == expected) {
-          applyWallpaper(targetHash);
-          return;
+
+        if(found) {
+          auto foundVisibility = found.value().visibility;
+          Visibility expected = state_helper::fromState(manifest.state.stateMode);
+
+          if(foundVisibility == expected) {
+            bool success = applyWallpaper(targetHash);
+            if(success) {
+              return;
+            }
+          }
         }
       } catch(std::exception const&) {
         cycle();
+        return;
       }
     }
+    cycle();
   }
 
-  void applyWallpaper(Hash const& hash) {
+  bool applyWallpaper(Hash const& hash) {
     auto resolvedPath = wallpaperStore.resolve(hash);
 
     if(!resolvedPath.has_value()) {
-      logging::error("Engine: Failed to resolve wallpaper path.");
-      return;
+      if(resolvedPath.error() == ResolveError::FileMissing) {
+        logging::warn("Engine: Wallpaper file missing from disk. Removing from manifest.");
+        manifest.deleteWallpaper(hash);
+        manifestStore.save(manifest);
+      } else {
+        logging::error("Engine: Failed to resolve wallpaper path.");
+      }
+      return false;
     }
 
     auto execution = setter.apply(*resolvedPath);
     if(!execution.has_value()) {
       logging::error("Engine: Setter command failed to execute.");
-      return;
+      return false;
     }
 
     auto found = manifest.find(hash);
@@ -121,5 +144,6 @@ struct Engine {
 
     manifestStore.save(manifest);
     logging::info("Engine: Successfully applied {}", resolvedPath->filename().string());
+    return true;
   }
 };
