@@ -1,6 +1,7 @@
 #include "../lib/ipc.hpp"
 #include "cli.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <string>
 
@@ -34,9 +35,17 @@ int main(int argc, char** argv) {
   }
 
   const std::string& response = *responseResult;
+
   const bool isSuccess = response.starts_with("OK ");
   if(isSuccess) {
-    std::cout << "\033[32mSuccess:\033[0m " << response.substr(3) << "\n";
+    std::string msg = response.substr(3);
+    std::ranges::replace(msg, '\v', '\n');
+    
+    if(msg.find('\n') != std::string::npos) {
+      std::cout << "\033[32mSuccess:\033[0m\n" << msg << "\n";
+    } else {
+      std::cout << "\033[32mSuccess:\033[0m " << msg << "\n";
+    }
     return 0;
   }
 

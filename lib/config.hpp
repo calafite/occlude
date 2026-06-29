@@ -18,7 +18,9 @@
       .privateRoot = configDir / "private",
       .manifestPath = configDir / "manifest.bin",
       .setterCommandTemplate = "noctalia msg wallpaper-set {path}",
-      .getterCommandTemplate = "noctalia msg wallpaper-get"
+      .getterCommandTemplate = "noctalia msg wallpaper-get",
+      .defaultDownloadDirectory = "",
+      .scanIntervalMinutes = 0
   };
 }
 
@@ -29,7 +31,9 @@ inline void to_json(nlohmann::json& j, Settings const& settings) {
       {"privateRoot", settings.privateRoot.string()},
       {"manifestPath", settings.manifestPath.string()},
       {"setterCommandTemplate", settings.setterCommandTemplate},
-      {"getterCommandTemplate", settings.getterCommandTemplate}
+      {"getterCommandTemplate", settings.getterCommandTemplate},
+      {"defaultDownloadDirectory", settings.defaultDownloadDirectory},
+      {"scanIntervalMinutes", settings.scanIntervalMinutes}
   };
 }
 
@@ -40,6 +44,8 @@ inline void from_json(nlohmann::json const& j, Settings& settings) {
   settings.manifestPath = j.value("manifestPath", defaults.manifestPath.string());
   settings.setterCommandTemplate = j.value("setterCommandTemplate", defaults.setterCommandTemplate);
   settings.getterCommandTemplate = j.value("getterCommandTemplate", defaults.getterCommandTemplate);
+  settings.defaultDownloadDirectory = j.value("defaultDownloadDirectory", defaults.defaultDownloadDirectory);
+  settings.scanIntervalMinutes = j.value("scanIntervalMinutes", defaults.scanIntervalMinutes);
 }
 // NOLINTEND
 
@@ -56,7 +62,10 @@ struct ConfigManager {
 
     const bool configExists = std::filesystem::exists(configPath);
     if(!configExists) {
-      logging::warn("Config file not found at {}. Creating default configuration.", configPath.string());
+      logging::warn(
+          "Warning: Using default configuration. Config file not found at {}. Creating default configuration.",
+          configPath.string()
+      );
       Settings defaultSettings = getDefaultSettings();
       saveConfig(configPath, defaultSettings);
       return defaultSettings;
@@ -69,7 +78,10 @@ private:
     std::ifstream file(path);
     const bool fileOpen = file.is_open();
     if(!fileOpen) {
-      logging::warn("Failed to open config file at {}. Falling back to defaults.", path.string());
+      logging::warn(
+          "Warning: Using default configuration. Failed to open config file at {}. Falling back to defaults.",
+          path.string()
+      );
       return getDefaultSettings();
     }
 
@@ -78,7 +90,11 @@ private:
       const nlohmann::json parsed = nlohmann::json::parse(file);
       settings = parsed.get<Settings>();
     } catch(nlohmann::json::exception const& ex) {
-      logging::warn("Failed to parse config at {}: {}. Falling back to defaults.", path.string(), ex.what());
+      logging::warn(
+          "Warning: Using default configuration. Failed to parse config at {}: {}. Falling back to defaults.",
+          path.string(),
+          ex.what()
+      );
       return getDefaultSettings();
     }
 

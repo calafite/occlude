@@ -16,7 +16,8 @@ namespace cli {
                 << "  ingest_safe <path>    Add a new safe wallpaper\n"
                 << "  ingest_unsafe <path>  Add a new unsafe wallpaper\n"
                 << "  status                Print daemon status\n"
-                << "  current               Get the current wallpaper\n";
+                << "  current               Get the current wallpaper\n"
+                << "  list                  Show all wallpapers\n";
     }
 
     [[nodiscard]] static std::optional<std::string> parse(int argc, char** argv) {
@@ -39,6 +40,10 @@ namespace cli {
       const bool isStatus = command == "status";
       if(isStatus) {
         return "STATUS";
+      }
+      const bool isList = command == "list";
+      if(isList) {
+        return "LIST";
       }
 
       const bool isIngestSafe = command == "ingest_safe";
