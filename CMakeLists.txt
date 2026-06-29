@@ -30,6 +30,8 @@ target_link_libraries(occlude_lib PUBLIC
 
 add_executable(occluded
     daemon/main.cpp
+    daemon/scanner.cpp
+    daemon/dispatcher.cpp
 )
 
 target_include_directories(occluded PRIVATE

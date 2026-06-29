@@ -1,6 +1,5 @@
 #include "dispatcher.hpp"
 
-#include "../lib/log.hpp"
 #include "utils.hpp"
 
 #include <format>
@@ -57,27 +56,28 @@ std::string CommandDispatcher::handleIngest(const CommandMessage& msg, Visibilit
     }
   }
 
-  return visibility == Visibility::Safe ? "OK Ingested safe wallpaper" : "OK Ingested unsafe wallpaper";
+  return visibility == Visibility::Safe ? "OK \033[32m✔\033[0m Ingested safe wallpaper"
+                                        : "OK \033[32m✔\033[0m Ingested unsafe wallpaper";
 }
 
 void CommandDispatcher::registerHandlers() {
   handlers["CYCLE"] = [this](const CommandMessage&) {
     std::lock_guard<std::mutex> lock(engineMutex.get());
     engine.get().cycle();
-    return "OK Cycled to next wallpaper";
+    return "OK \033[32m✔\033[0m Cycled to next wallpaper";
   };
 
   handlers["TOGGLE"] = [this](const CommandMessage&) {
     std::lock_guard<std::mutex> lock(engineMutex.get());
     engine.get().toggleMode();
-    return "OK Toggled visibility state";
+    return "OK \033[32m✔\033[0m Toggled visibility state";
   };
 
   handlers["STATUS"] = [this](const CommandMessage&) {
     std::lock_guard<std::mutex> lock(engineMutex.get());
     const bool isSafe = engine.get().manifest.state.stateMode == StateMode::Safe;
-    const std::string mode = isSafe ? "SAFE" : "UNSAFE";
-    return "OK Current Mode: " + mode;
+    const std::string mode = isSafe ? "\033[32mSAFE\033[0m" : "\033[31mUNSAFE\033[0m";
+    return "OK \033[34mℹ\033[0m Current Mode: " + mode;
   };
 
   handlers["LIST"] = [this](const CommandMessage&) {
@@ -90,7 +90,9 @@ void CommandDispatcher::registerHandlers() {
       return out;
     }
 
-    out += "Hash | Path | Visibility | Date\v";
+    out += std::format("\033[1m{:<8} │ {:<12} │ {:<19} │ {}\033[0m\v", "HASH", "VISIBILITY", "DATE", "PATH");
+    out += "─────────┼──────────────┼─────────────────────┼────────────────────────────────────────\v";
+
     for(const auto& wpRef : allWps) {
       const auto& wp = wpRef.get();
 
@@ -101,20 +103,26 @@ void CommandDispatcher::registerHandlers() {
       }
 
       std::string visStr;
+      std::string visColor;
       switch(wp.visibility) {
       case Visibility::Safe:
         visStr = "Safe";
+        visColor = "\033[32m"; // GREEN
         break;
       case Visibility::Unsafe:
         visStr = "Unsafe";
+        visColor = "\033[31m"; // RED
         break;
       case Visibility::Unclassified:
-        visStr = "Unclassified";
+        visStr = "Unclass";
+        visColor = "\033[33m"; // YELLOW
         break;
       }
 
       std::string dateStr = std::format("{:%Y-%m-%d %H:%M:%S}", wp.createdAt);
-      out += std::format("{} | {} | {} | {}\v", hashHex.substr(0, 8) + "...", wp.absPath.string(), visStr, dateStr);
+      std::string shortHash = hashHex.substr(0, 8);
+
+      out += std::format("{} │ {}{:<12}\033[0m │ {} │ {}\v", shortHash, visColor, visStr, dateStr, wp.absPath.string());
     }
 
     if(out.back() == '\v') {

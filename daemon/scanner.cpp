@@ -15,6 +15,7 @@ void WallpaperScanner::start() {
   const uint32_t interval = settings.get().scanIntervalMinutes;
   const std::string& dirPath = settings.get().defaultDownloadDirectory;
 
+  logging::info("{} {}", dirPath, interval);
   if(dirPath.empty() || interval == 0) {
     return;
   }
