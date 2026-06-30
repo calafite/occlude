@@ -119,10 +119,16 @@ void WallpaperScanner::processFile(const std::filesystem::directory_entry& entry
     const Hash hash = engine.get().wallpaperStore.ingest(path, currentVisibility);
 
     if(wasActive && currentVisibility != Visibility::Unclassified) {
-      const Visibility expectedVisibility =
-          (engine.get().manifest.state.stateMode == StateMode::Safe) ? Visibility::Safe : Visibility::Unsafe;
+      const bool isSafeMode = engine.get().manifest.state.stateMode == StateMode::Safe;
 
-      if(currentVisibility == expectedVisibility) {
+      bool visibilityMatches = false;
+      if(isSafeMode) {
+        visibilityMatches = currentVisibility == Visibility::Safe;
+      } else {
+        visibilityMatches = currentVisibility == Visibility::Safe || currentVisibility == Visibility::Unsafe;
+      }
+
+      if(visibilityMatches) {
         engine.get().applyWallpaper(hash);
       } else {
         engine.get().cycle();

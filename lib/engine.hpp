@@ -73,9 +73,15 @@ struct Engine {
       }
 
       auto oldest = std::ranges::min_element(available, [](auto const& a, auto const& b) {
-        if(!a.get().lastShown && !b.get().lastShown) { return false; }
-        if(!a.get().lastShown) { return true; }
-        if(!b.get().lastShown) { return false; }
+        if(!a.get().lastShown && !b.get().lastShown) {
+          return false;
+        }
+        if(!a.get().lastShown) {
+          return true;
+        }
+        if(!b.get().lastShown) {
+          return false;
+        }
         return *a.get().lastShown < *b.get().lastShown;
       });
 
@@ -108,11 +114,20 @@ struct Engine {
 
         if(found) {
           auto foundVisibility = found.value().visibility;
-          Visibility expected = state_helper::fromState(manifest.state.stateMode);
+          const bool isSafeMode = manifest.state.stateMode == StateMode::Safe;
 
-          if(foundVisibility == expected) {
+          bool isValid = false;
+          if(isSafeMode) {
+            isValid = foundVisibility == Visibility::Safe;
+          } else {
+            isValid = foundVisibility == Visibility::Safe || foundVisibility == Visibility::Unsafe;
+          }
+
+          if(isValid) {
             bool success = applyWallpaper(targetHash);
-            if(success) { return; }
+            if(success) {
+              return;
+            }
           }
         }
       } catch(std::exception const&) {

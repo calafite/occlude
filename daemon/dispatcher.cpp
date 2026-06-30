@@ -135,8 +135,13 @@ std::string CommandDispatcher::handleIngest(const CommandMessage& message, Visib
 
   if(wasActive) {
     const bool isSafeMode = engine.get().manifest.state.stateMode == StateMode::Safe;
-    const Visibility expectedVisibility = isSafeMode ? Visibility::Safe : Visibility::Unsafe;
-    const bool visibilityMatches = expectedVisibility == visibility;
+
+    bool visibilityMatches = false;
+    if(isSafeMode) {
+      visibilityMatches = visibility == Visibility::Safe;
+    } else {
+      visibilityMatches = visibility == Visibility::Safe || visibility == Visibility::Unsafe;
+    }
 
     if(visibilityMatches) {
       engine.get().applyWallpaper(hash);

@@ -80,8 +80,23 @@ std::vector<ConstReference<Wallpaper>> Manifest::query(Visibility visibility) co
 }
 
 std::vector<ConstReference<Wallpaper>> Manifest::current() const {
-  auto currentVisibility = state_helper::fromState(state.stateMode);
-  return query(currentVisibility);
+  std::vector<ConstReference<Wallpaper>> results;
+  results.reserve(wallpapers.size());
+
+  for(auto const& wallpaper : wallpapers) {
+    const bool isSafeMode = state.stateMode == StateMode::Safe;
+    const bool isSafeWallpaper = wallpaper->visibility == Visibility::Safe;
+    const bool isUnsafeWallpaper = wallpaper->visibility == Visibility::Unsafe;
+
+    const bool safeMatch = isSafeMode && isSafeWallpaper;
+    const bool unsafeMatch = !isSafeMode && (isSafeWallpaper || isUnsafeWallpaper);
+
+    if(safeMatch || unsafeMatch) {
+      results.emplace_back(*wallpaper);
+    }
+  }
+
+  return results;
 }
 
 std::vector<ConstReference<Wallpaper>> Manifest::all() const {
