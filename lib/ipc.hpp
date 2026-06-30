@@ -1,4 +1,7 @@
 #pragma once
+#include <algorithm>
+#include <array>
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -80,23 +83,34 @@ namespace IPC {
 
     [[nodiscard]] std::expected<std::string, Error> receive() const {
       std::string buffer;
-      char character = 0;
+      std::array<char, 1024> chunk{};
       bool sawNewline = false;
-      while(true) {
-        ssize_t bytes = ::read(fileDescriptor, &character, 1);
-        const bool readFailed = bytes <= 0;
-        if(readFailed) {
-          break;
+
+      while(!sawNewline) {
+        ssize_t bytes = ::read(fileDescriptor, chunk.data(), chunk.size());
+        if(bytes < 0) {
+          if(errno == EINTR) {
+            continue; 
+          }
+          return std::unexpected(Error::Read);
         }
-        const bool isNewline = character == '\n';
-        if(isNewline) {
+        if(bytes == 0) {
+          break; 
+        }
+
+        const auto* start = chunk.data();
+        const auto* end = start + bytes;
+        const auto* newlinePos = std::find(start, end, '\n');
+
+        if(newlinePos != end) {
+          buffer.append(start, static_cast<std::size_t>(newlinePos - start));
           sawNewline = true;
           break;
         }
-        buffer.push_back(character);
+        buffer.append(start, static_cast<std::size_t>(end - start));
       }
-      const bool readSucceeded = sawNewline;
-      if(!readSucceeded) {
+
+      if(!sawNewline) {
         return std::unexpected(Error::Read);
       }
       return buffer;

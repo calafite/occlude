@@ -4,6 +4,8 @@
 #include "utils.hpp"
 
 #include <chrono>
+#include <condition_variable>
+#include <mutex>
 
 WallpaperScanner::WallpaperScanner(
     Engine<
@@ -38,16 +40,16 @@ void WallpaperScanner::run(const std::stop_token& stopToken) {
 
   logging::info("Scanner thread started for directory: {} (interval: {}m)", directoryPath, interval);
 
+  std::condition_variable_any cv;
+  std::mutex cvMtx;
+
   while(!stopToken.stop_requested()) {
     scanNow();
 
-    for(uint32_t i = 0; i < interval * 60; ++i) {
-      const bool stopRequested = stopToken.stop_requested();
-      if(stopRequested) {
-        break;
-      }
-      std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
+    std::unique_lock<std::mutex> lock(cvMtx);
+    cv.wait_for(lock, stopToken, std::chrono::minutes(interval), [&stopToken] {
+      return stopToken.stop_requested();
+    });
   }
 }
 
