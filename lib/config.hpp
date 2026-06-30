@@ -16,6 +16,7 @@
   return Settings{
       .publicRoot = configDir / "public",
       .privateRoot = configDir / "private",
+      .unclassifiedRoot = configDir / "unclassified",
       .manifestPath = configDir / "manifest.bin",
       .setterCommandTemplate = "noctalia msg wallpaper-set {path}",
       .getterCommandTemplate = "noctalia msg wallpaper-get",
@@ -30,6 +31,7 @@ inline void to_json(nlohmann::json& j, Settings const& settings) {
   j = nlohmann::json{
       {"publicRoot", settings.publicRoot.string()},
       {"privateRoot", settings.privateRoot.string()},
+      {"unclassifiedRoot", settings.unclassifiedRoot.string()},
       {"manifestPath", settings.manifestPath.string()},
       {"setterCommandTemplate", settings.setterCommandTemplate},
       {"getterCommandTemplate", settings.getterCommandTemplate},
@@ -43,6 +45,7 @@ inline void from_json(nlohmann::json const& j, Settings& settings) {
   Settings defaults = getDefaultSettings();
   settings.publicRoot = j.value("publicRoot", defaults.publicRoot.string());
   settings.privateRoot = j.value("privateRoot", defaults.privateRoot.string());
+  settings.unclassifiedRoot = j.value("unclassifiedRoot", defaults.unclassifiedRoot.string());
   settings.manifestPath = j.value("manifestPath", defaults.manifestPath.string());
   settings.setterCommandTemplate = j.value("setterCommandTemplate", defaults.setterCommandTemplate);
   settings.getterCommandTemplate = j.value("getterCommandTemplate", defaults.getterCommandTemplate);

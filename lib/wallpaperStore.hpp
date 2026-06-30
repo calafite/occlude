@@ -16,12 +16,14 @@ struct WallpaperStore {
       Manifest& manifestRef, //
       FS& filesystem,        //
       FilePath publicRootV,  //
-      FilePath privateRootV  //
+      FilePath privateRootV,
+      FilePath unclassifiedRootV //
   )
-      : manifest(manifestRef),              //
-        fs(filesystem),                     //
-        publicRoot(std::move(publicRootV)), //
-        privateRoot(std::move(privateRootV)) {}
+      : manifest(manifestRef),                //
+        fs(filesystem),                       //
+        publicRoot(std::move(publicRootV)),   //
+        privateRoot(std::move(privateRootV)), //
+        unclassifiedRoot(std::move(unclassifiedRootV)) {}
 
   [[nodiscard]] std::expected<FilePath, ResolveError> resolve(Hash const& hash) const {
     auto found = manifest.get().find(hash);
@@ -50,7 +52,15 @@ struct WallpaperStore {
     auto bytes = fs.get().read(sourcePath);
     Hash hash = Hash::fromBytes(bytes);
 
-    FilePath const& root = visibility == Visibility::Unsafe ? privateRoot : publicRoot;
+    FilePath root;
+    if(visibility == Visibility::Unsafe) {
+      root = privateRoot;
+    } else if(visibility == Visibility::Safe) {
+      root = publicRoot;
+    } else {
+      root = unclassifiedRoot;
+    }
+
     FilePath destination = root / sourcePath.filename();
 
     MoveOperation moveOp{.from = sourcePath, .to = destination};
@@ -65,4 +75,5 @@ private:
   std::reference_wrapper<FS> fs;
   FilePath publicRoot;
   FilePath privateRoot;
+  FilePath unclassifiedRoot;
 };

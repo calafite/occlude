@@ -13,6 +13,7 @@
 #include <chrono>
 #include <exception>
 #include <format>
+#include <functional>
 
 namespace detail {
   inline std::string toHex(Hash const& hash) {
@@ -27,18 +28,20 @@ namespace detail {
 
 template<FileSystem FS, CommandRunner Runner>
 struct Engine {
+  std::reference_wrapper<FS> fs;
   Settings settings;
   ManifestStore<FS> manifestStore;
   Manifest manifest;
   WallpaperStore<FS> wallpaperStore;
   WallpaperSetter<Runner> setter;
 
-  Engine(FS& fs, Runner& runner, Settings s)
-      : settings(std::move(s)),                                                  //
-        manifestStore(fs, settings.manifestPath),                                //
-        manifest(manifestStore.load()),                                          //
-        wallpaperStore(manifest, fs, settings.publicRoot, settings.privateRoot), //
-        setter(runner, settings) {}                                              //
+  Engine(FS& fsRef, Runner& runner, Settings s)
+      : fs(fsRef),                                                                                             //
+        settings(std::move(s)),                                                                                //
+        manifestStore(fsRef, settings.manifestPath),                                                           //
+        manifest(manifestStore.load()),                                                                        //
+        wallpaperStore(manifest, fsRef, settings.publicRoot, settings.privateRoot, settings.unclassifiedRoot), //
+        setter(runner, settings) {}                                                                            //
 
   void cycle() {
     while(true) {
@@ -70,15 +73,9 @@ struct Engine {
       }
 
       auto oldest = std::ranges::min_element(available, [](auto const& a, auto const& b) {
-        if(!a.get().lastShown && !b.get().lastShown) {
-          return false;
-        }
-        if(!a.get().lastShown) {
-          return true;
-        }
-        if(!b.get().lastShown) {
-          return false;
-        }
+        if(!a.get().lastShown && !b.get().lastShown) { return false; }
+        if(!a.get().lastShown) { return true; }
+        if(!b.get().lastShown) { return false; }
         return *a.get().lastShown < *b.get().lastShown;
       });
 
@@ -115,9 +112,7 @@ struct Engine {
 
           if(foundVisibility == expected) {
             bool success = applyWallpaper(targetHash);
-            if(success) {
-              return;
-            }
+            if(success) { return; }
           }
         }
       } catch(std::exception const&) {
@@ -183,7 +178,16 @@ struct Engine {
     }
 
     FilePath currentPath = found.value().absPath;
-    FilePath targetRoot = (newVisibility == Visibility::Unsafe) ? settings.privateRoot : settings.publicRoot;
+
+    FilePath targetRoot;
+    if(newVisibility == Visibility::Unsafe) {
+      targetRoot = settings.privateRoot;
+    } else if(newVisibility == Visibility::Safe) {
+      targetRoot = settings.publicRoot;
+    } else {
+      targetRoot = settings.unclassifiedRoot;
+    }
+
     FilePath newPath = targetRoot / currentPath.filename();
 
     if(currentPath != newPath) {

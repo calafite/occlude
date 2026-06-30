@@ -28,6 +28,7 @@ int main() {
 
   std::filesystem::create_directories(settings.publicRoot);
   std::filesystem::create_directories(settings.privateRoot);
+  std::filesystem::create_directories(settings.unclassifiedRoot);
 
   RealFileSystem rfs;
   SystemCommandRunner runner;
@@ -35,9 +36,11 @@ int main() {
 
   std::mutex engineMutex;
 
+  // Initialize background scanner
   WallpaperScanner scanner(engine, engineMutex, settings);
   scanner.start();
 
+  // Initialize command router with scanner injection
   CommandDispatcher dispatcher(engine, engineMutex, settings, scanner);
 
   auto serverResult = IPC::Server::create();
