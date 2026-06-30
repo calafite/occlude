@@ -5,6 +5,7 @@
 #include "hash.hpp"
 #include "state.hpp"
 
+#include <bit>
 #include <chrono>
 #include <concepts>
 #include <cstddef>
@@ -20,6 +21,22 @@
 namespace detail {
   constexpr MagicBytes kMagic = {'O', 'C', 'C', 'L'};
   constexpr std::uint32_t kVersion = 1;
+
+  template<std::integral T>
+  [[nodiscard]] constexpr T toLittleEndian(T value) noexcept {
+    if constexpr(std::endian::native == std::endian::big) {
+      return std::byteswap(value);
+    }
+    return value;
+  }
+
+  template<std::integral T>
+  [[nodiscard]] constexpr T fromLittleEndian(T value) noexcept {
+    if constexpr(std::endian::native == std::endian::big) {
+      return std::byteswap(value);
+    }
+    return value;
+  }
 
   template<typename Type>
   concept PodCapable = std::semiregular<Type> && std::is_trivially_copyable_v<Type>;
@@ -42,6 +59,9 @@ namespace detail {
     Type readPod() {
       Type value{};
       readRaw(&value, sizeof(Type));
+      if constexpr(std::integral<Type>) {
+        return fromLittleEndian(value);
+      }
       return value;
     }
 
@@ -78,7 +98,12 @@ namespace detail {
 
     template<PodCapable Type>
     void writePod(Type const& val) {
-      writeRaw(&val, sizeof(Type));
+      if constexpr(std::integral<Type>) {
+        Type swapped = toLittleEndian(val);
+        writeRaw(&swapped, sizeof(Type));
+      } else {
+        writeRaw(&val, sizeof(Type));
+      }
     }
 
     void writeString(std::string const& str) {
