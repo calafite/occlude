@@ -7,8 +7,7 @@
 #include <mutex>
 #include <thread>
 
-class WallpaperScanner {
-public:
+struct WallpaperScanner {
   WallpaperScanner(
       Engine<
           RealFileSystem,         //
@@ -19,6 +18,7 @@ public:
   );
 
   void start();
+  void scanNow();
 
 private:
   void run(const std::stop_token& stopToken);

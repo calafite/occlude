@@ -9,6 +9,7 @@
 #include "wallpaperStore.hpp"
 #include "wallpapers.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <exception>
 #include <format>
@@ -47,7 +48,31 @@ struct Engine {
         return;
       }
 
+      std::string activePathStr;
+      auto activeOut = SystemCommandRunner::runYieldOutput(settings.getterCommandTemplate);
+      if(activeOut) {
+        activePathStr = *activeOut;
+      }
+
+      std::string currentHashHex = (manifest.state.stateMode == StateMode::Safe)
+          ? manifest.state.publicCurrent.value_or("")
+          : manifest.state.privateCurrent.value_or("");
+
+      if(available.size() > 1) {
+        std::erase_if(available, [&](const auto& wpRef) {
+          bool isEngineCurrent = (detail::toHex(wpRef.get().hash) == currentHashHex);
+          bool isVisuallyCurrent =
+              (!activePathStr.empty() &&
+               (wpRef.get().absPath.string() == activePathStr ||
+                activePathStr.find(wpRef.get().absPath.filename().string()) != std::string::npos));
+          return isEngineCurrent || isVisuallyCurrent;
+        });
+      }
+
       auto oldest = std::ranges::min_element(available, [](auto const& a, auto const& b) {
+        if(!a.get().lastShown && !b.get().lastShown) {
+          return false;
+        }
         if(!a.get().lastShown) {
           return true;
         }
@@ -59,11 +84,9 @@ struct Engine {
 
       Hash oldestHash = oldest->get().hash;
       bool success = applyWallpaper(oldestHash);
-
       if(success) {
-        break; 
+        break;
       }
-
       logging::warn("Engine: Cycle skipped a broken/missing wallpaper. Retrying...");
     }
   }
@@ -102,6 +125,7 @@ struct Engine {
         return;
       }
     }
+
     cycle();
   }
 
@@ -145,5 +169,36 @@ struct Engine {
     manifestStore.save(manifest);
     logging::info("Engine: Successfully applied {}", resolvedPath->filename().string());
     return true;
+  }
+
+  void classify(Hash const& hash, Visibility newVisibility) {
+    auto found = manifest.find(hash);
+    if(!found) {
+      throw std::runtime_error("Wallpaper not found in manifest");
+    }
+
+    Visibility oldVisibility = found.value().visibility;
+    if(oldVisibility == newVisibility) {
+      return;
+    }
+
+    FilePath currentPath = found.value().absPath;
+    FilePath targetRoot = (newVisibility == Visibility::Unsafe) ? settings.privateRoot : settings.publicRoot;
+    FilePath newPath = targetRoot / currentPath.filename();
+
+    if(currentPath != newPath) {
+      MoveOperation moveOp{.from = currentPath, .to = newPath};
+      fs.get().move(moveOp);
+    }
+
+    for(auto& wp : manifest.wallpapers) {
+      if(wp->hash == hash) {
+        wp->visibility = newVisibility;
+        wp->absPath = newPath;
+        break;
+      }
+    }
+
+    manifestStore.save(manifest);
   }
 };

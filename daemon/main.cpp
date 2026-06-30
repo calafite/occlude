@@ -38,7 +38,7 @@ int main() {
   WallpaperScanner scanner(engine, engineMutex, settings);
   scanner.start();
 
-  CommandDispatcher dispatcher(engine, engineMutex, settings);
+  CommandDispatcher dispatcher(engine, engineMutex, settings, scanner);
 
   auto serverResult = IPC::Server::create();
   const bool serverCreated = serverResult.has_value();

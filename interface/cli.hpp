@@ -15,9 +15,11 @@ namespace cli {
                 << "  toggle                Toggle between Safe/Unsafe modes\n"
                 << "  ingest_safe <path>    Add a new safe wallpaper\n"
                 << "  ingest_unsafe <path>  Add a new unsafe wallpaper\n"
+                << "  classify <hash> <vis> Change visibility of a wallpaper (safe/unsafe/unclassified)\n"
                 << "  status                Print daemon status\n"
                 << "  current               Get the current wallpaper\n"
-                << "  list                  Show all wallpapers\n";
+                << "  list                  Show all wallpapers\n"
+                << "  scan                  Force manual scan of downloads directory\n";
     }
 
     [[nodiscard]] static std::optional<std::string> parse(int argc, char** argv) {
@@ -44,6 +46,19 @@ namespace cli {
       const bool isList = command == "list";
       if(isList) {
         return "LIST";
+      }
+      const bool isScan = command == "scan" || command == "force_ingest";
+      if(isScan) {
+        return "SCAN";
+      }
+
+      const bool isClassify = command == "classify";
+      if(isClassify) {
+        if(argc != 4) {
+          std::cerr << "Error: 'classify' requires exactly two arguments: <hash> and <safe|unsafe|unclassified>\n";
+          return std::nullopt;
+        }
+        return std::string("CLASSIFY ") + argv[2] + " " + argv[3];
       }
 
       const bool isIngestSafe = command == "ingest_safe";
