@@ -7,9 +7,9 @@
 ## Overview
 
 The system is split into three main binaries and a shared library:
-*   **`occluded`**: The background daemon. It coordinates wallpaper states, manages directory structures, operates the background scanning thread, executes shell templates to apply images, and exposes a Unix domain socket IPC server.
+*   **`occluded`**: The background daemon. It coordinates wallpaper states, manages directory structures, operates the background scanning and automatic cycling threads, executes shell templates to apply images, validates media files, and exposes a Unix domain socket IPC server.
 *   **`occlude`**: A command-line companion client used for quick keybindings, shell scripts, and querying daemon status.
-*   **`occlude-tui`**: An interactive terminal-based interface driven by FTXUI, displaying tracked files, sorting criteria, metadata, search filtering, and configuration modals.
+*   **`occlude-tui`**: An interactive terminal-based interface driven by FTXUI, displaying tracked files, sorting criteria, metadata, search filtering, external previews, bulk selection, and configuration modals.
 *   **`occlude_lib`**: The static core library implementing atomic filesystem abstractions, SHA-256 stream hashing, binary state database persistence, and internal routing.
 
 ---
@@ -66,6 +66,7 @@ On initial startup, `occluded` generates a default configuration file under `~/.
   "getterCommandTemplate": "noctalia msg wallpaper-get",
   "defaultDownloadDirectory": "",
   "scanIntervalSeconds": 30,
+  "cycleIntervalSeconds": 0,
   "defaultIngestionVisibility": "unclassified"
 }
 ```
@@ -78,8 +79,9 @@ On initial startup, `occluded` generates a default configuration file under `~/.
 *   `manifestPath`: Path to the binary database file tracking hashes, states, and history.
 *   `setterCommandTemplate`: Shell command executed to change wallpapers. The `{path}` placeholder is replaced with the absolute path of the chosen wallpaper.
 *   `getterCommandTemplate`: Shell command executed to check what wallpaper is currently applied.
-*   `defaultDownloadDirectory`: Path (e.g. `~/Downloads`) that the daemon periodically scans for incoming images. Leave empty to disable background scanning.
+*   `defaultDownloadDirectory`: Path (e.g. `~/Downloads`) that the daemon periodically scans for incoming images. The scanner checks both file extensions and magic bytes (`.jpg`, `.png`, `.webp`, `.gif`) to prevent spoofing. Leave empty to disable background scanning.
 *   `scanIntervalSeconds`: Frequency of background scans in seconds.
+*   `cycleIntervalSeconds`: Frequency of automatic background wallpaper cycling in seconds. Set to `0` to disable auto-cycling.
 *   `defaultIngestionVisibility`: Target category for automatically discovered wallpapers. Options are `"safe"`, `"unsafe"`, `"unclassified"`, or `"current"` (inherits the active system mode).
 
 ---
@@ -146,18 +148,21 @@ Current Mode: SAFE
 
 The `occlude-tui` program provides a mouse-supported interactive screen to manage, filter, and modify wallpaper classifications.
 
-<img width="1917" height="1075" alt="image" src="https://github.com/user-attachments/assets/5accfd2a-5fe6-4974-adec-ccf7455e511d" />
+<img width="1916" height="1076" alt="image" src="https://github.com/user-attachments/assets/ede2ac3f-84fd-4ddb-a914-154fb64b6bd7" />
 
 ### TUI Keybindings
 
 *   `/` : Focus search input field.
 *   `Escape` : Unfocus search input field (returns control to list navigation).
 *   `j` / `k` (or `Up` / `Down` arrows) : Navigate wallpaper list.
+*   `Space` : Toggle multi-selection for the currently highlighted wallpaper.
+*   `*` : Toggle multi-selection for **all** wallpapers currently visible in the filtered list.
 *   `a` : Apply the selected wallpaper immediately.
     *   *Note: In Safe mode, trying to apply an Unsafe or Unclassified wallpaper triggers a warning and blocks execution.*
-*   `v` : Open the **Classify** selection modal.
-*   `r` : Open the **Rename** text input modal.
-*   `d` : Open the **Delete** confirmation modal.
+*   `p` : Securely launch an external image preview of the highlighted wallpaper (does not block the TUI).
+*   `v` : Open the **Classify** selection modal. Operates on all selected wallpapers if a bulk selection is active.
+*   `r` : Open the **Rename** text input modal (disabled during bulk selection).
+*   `d` : Open the **Delete** confirmation modal. Operates on all selected wallpapers if a bulk selection is active.
 *   `S` : Cycle list sorting criteria (by Name, Date, or Visibility).
 *   `s` : Trigger background filesystem scanner immediately.
 *   `c` : Force-cycle the wallpaper.
