@@ -2,9 +2,11 @@
 
 #include <array>
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <functional>
 #include <span>
+#include <string>
 
 using Timestamp = std::chrono::system_clock::time_point;
 using FilePath = std::filesystem::path;
@@ -25,3 +27,9 @@ using MagicBytes = std::array<char, 4>;
 
 template<typename Type>
 using ConstReference = std::reference_wrapper<const Type>;
+
+[[nodiscard]] inline std::string getHomeDirectory() {
+  const char* const home = std::getenv("HOME");
+  const bool hasHomeEnv = home != nullptr;
+  return hasHomeEnv ? std::string(home) : "/tmp";
+}

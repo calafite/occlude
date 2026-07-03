@@ -1,5 +1,6 @@
 #include "../io/fs.hpp"
 #include "../utils/common.hpp"
+#include "../3p/picosha2.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -86,6 +87,18 @@ void RealFileSystem::move(MoveOperation& moveOperation) {
 
   std::error_code errorCode;
   std::filesystem::rename(from, to, errorCode);
+
+  const bool isCrossDevice = errorCode == std::errc::cross_device_link;
+  if(isCrossDevice) {
+    errorCode.clear();
+    std::filesystem::copy(from, to, std::filesystem::copy_options::overwrite_existing, errorCode);
+    
+    const bool copySucceeded = !errorCode;
+    if(copySucceeded) {
+      std::filesystem::remove(from, errorCode);
+    }
+  }
+
   if(errorCode) {
     throw std::runtime_error(
         "RealFileSystem::move: " + errorCode.message() + " (" + from.string() + " -> " + to.string() + ")"
@@ -99,6 +112,28 @@ void RealFileSystem::remove(FilePath const& path) {
   if(errorCode) {
     throw std::runtime_error("RealFileSystem::remove: " + errorCode.message() + " (" + path.string() + ")");
   }
+}
+
+Hash RealFileSystem::hashFile(FilePath const& path) {
+  std::ifstream file(path, std::ios::binary);
+  const bool fileOpen = file.is_open();
+  if(!fileOpen) {
+    throw std::runtime_error("RealFileSystem::hashFile: failed to open " + path.string());
+  }
+
+  std::vector<unsigned char> digest(picosha2::k_digest_size);
+  picosha2::hash256(
+      std::istreambuf_iterator<char>(file),
+      std::istreambuf_iterator<char>(),
+      digest.begin(),
+      digest.end()
+  );
+
+  HashByteArray rBytes{};
+  std::ranges::transform(digest, rBytes.begin(), [](unsigned char c) {
+    return static_cast<std::byte>(c);
+  });
+  return Hash(rBytes);
 }
 
 // VFS
@@ -157,8 +192,14 @@ void VirtualFileSystem::remove(FilePath const& path) {
   files.erase(path);
 }
 
+Hash VirtualFileSystem::hashFile(FilePath const& path) const {
+  const std::vector<std::byte> bytes = read(path);
+  return Hash::fromBytes(bytes);
+}
+
 void VirtualFileSystem::unmount(FilePath const& root) {
   std::erase_if(files, [&](auto const& entry) {
     return std::ranges::starts_with(entry.first, root);
   });
 }
+

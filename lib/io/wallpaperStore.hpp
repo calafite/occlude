@@ -1,9 +1,9 @@
 #pragma once
-#include "../utils/common.hpp"
-#include "../io/fs.hpp"
-#include "../utils/hash.hpp"
 #include "../core/state.hpp"
 #include "../core/wallpapers.hpp"
+#include "../io/fs.hpp"
+#include "../utils/common.hpp"
+#include "../utils/hash.hpp"
 
 #include <chrono>
 #include <expected>
@@ -49,8 +49,7 @@ struct WallpaperStore {
   }
 
   Hash ingest(FilePath const& sourcePath, Visibility visibility) {
-    auto bytes = fs.get().read(sourcePath);
-    Hash hash = Hash::fromBytes(bytes);
+    const Hash hash = fs.get().hashFile(sourcePath);
 
     FilePath root;
     if(visibility == Visibility::Unsafe) {

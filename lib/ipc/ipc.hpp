@@ -73,10 +73,24 @@ namespace IPC {
 
     [[nodiscard]] std::expected<void, Error> send(std::string_view message) const {
       std::string packet = utilities::strFromMessage(message);
-      ssize_t bytes = ::write(fileDescriptor, packet.data(), packet.size());
-      const bool writeFailed = bytes < 0;
-      if(writeFailed) {
-        return std::unexpected(Error::Write);
+      std::size_t totalWritten = 0;
+      const std::size_t packetSize = packet.size();
+
+      while(totalWritten < packetSize) {
+        const auto* const dataPtr = packet.data() + totalWritten;
+        const std::size_t remaining = packetSize - totalWritten;
+        const ssize_t bytes = ::write(fileDescriptor, dataPtr, remaining);
+
+        const bool writeFailed = bytes < 0;
+        if(writeFailed) {
+          const bool isInterrupted = errno == EINTR;
+          if(isInterrupted) {
+            continue;
+          }
+          return std::unexpected(Error::Write);
+        }
+
+        totalWritten += static_cast<std::size_t>(bytes);
       }
       return {};
     }

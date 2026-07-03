@@ -15,12 +15,10 @@
 
 int main() {
   std::signal(SIGPIPE, SIG_IGN);
-
-  const char* const home = std::getenv("HOME");
-  const bool hasHomeEnv = home != nullptr;
-  const std::string homeDir = hasHomeEnv ? std::string(home) : "/tmp";
-  const std::string logPath = homeDir + "/.config/occlude/daemon.log";
-
+  const std::string logPath = getHomeDirectory() + "/.config/occlude/daemon.log";
+  logging::Logger::get().init(logPath);
+  logging::info("Starting occlude daemon...");
+  
   logging::Logger::get().init(logPath);
   logging::info("Starting occlude daemon...");
 

@@ -10,9 +10,7 @@
 #include <nlohmann/json.hpp>
 
 [[nodiscard]] inline Settings getDefaultSettings() {
-  const char* const home = std::getenv("HOME");
-  const bool hasHomeEnv = home != nullptr;
-  const std::string homeDir = hasHomeEnv ? std::string(home) : "/tmp";
+  const std::string homeDir = getHomeDirectory();
   const FilePath configDir = FilePath(homeDir) / ".config" / "occlude";
   return Settings{
       .publicRoot = configDir / "public",
@@ -60,9 +58,7 @@ struct ConfigManager {
   ConfigManager() = delete;
 
   [[nodiscard]] static Settings loadOrInit() {
-    const char* const home = std::getenv("HOME");
-    const bool hasHomeEnv = home != nullptr;
-    const std::string homeDir = hasHomeEnv ? std::string(home) : "/tmp";
+    const std::string homeDir = getHomeDirectory();
     const FilePath configDir = FilePath(homeDir) / ".config" / "occlude";
     const FilePath configPath = configDir / "config.json";
     std::filesystem::create_directories(configDir);
