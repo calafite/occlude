@@ -1,4 +1,5 @@
 #include "modals.hpp"
+
 #include "ipcClient.hpp"
 
 #include <ftxui/component/component.hpp>
@@ -48,7 +49,13 @@ ftxui::Component CreateDeleteModal(AppState& state, ftxui::Component wallpaperMe
   auto btnDelete = Button("Delete", [&state, wallpaperMenu]() {
     state.showDeleteModal = false;
 
-    if(!state.filteredWallpapers.empty()) {
+    if(!state.selectedHashes.empty()) {
+      for(const auto& hash : state.selectedHashes) {
+        IpcClient::executeCommand(state, "DELETE " + hash, true);
+      }
+      state.selectedHashes.clear();
+      IpcClient::syncState(state);
+    } else if(!state.filteredWallpapers.empty()) {
       IpcClient::executeCommand(state, "DELETE " + state.filteredWallpapers[state.selectedIndex].hash);
     }
     wallpaperMenu->TakeFocus();
@@ -101,15 +108,23 @@ ftxui::Component CreateClassifyModal(AppState& state, ftxui::Component wallpaper
   auto btnOk = Button("OK", [&state, wallpaperMenu]() {
     state.showClassifyModal = false;
 
-    if(!state.filteredWallpapers.empty()) {
-      std::string target = "unclassified";
-      if(state.classifyIndex == 0) {
-        target = "safe";
+    std::string target = "unclassified";
+    if(state.classifyIndex == 0) {
+      target = "safe";
+    }
+    if(state.classifyIndex == 1) {
+      target = "unsafe";
+    }
+
+    if(!state.selectedHashes.empty()) {
+      for(const auto& hash : state.selectedHashes) {
+        IpcClient::executeCommand(state, std::format("CLASSIFY {} {}", hash, target), true);
       }
-      if(state.classifyIndex == 1) {
-        target = "unsafe";
-      }
-      IpcClient::executeCommand(state, "CLASSIFY " + state.filteredWallpapers[state.selectedIndex].hash + " " + target);
+      state.selectedHashes.clear();
+      IpcClient::syncState(state); 
+    } else if(!state.filteredWallpapers.empty()) {
+      const auto& hash = state.filteredWallpapers[state.selectedIndex].hash;
+      IpcClient::executeCommand(state, std::format("CLASSIFY {} {}", hash, target)); 
     }
     wallpaperMenu->TakeFocus();
   });

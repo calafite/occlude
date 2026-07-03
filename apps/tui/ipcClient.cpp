@@ -1,4 +1,5 @@
 #include "ipcClient.hpp"
+
 #include "../../lib/ipc/ipc.hpp"
 
 #include <algorithm>
@@ -73,6 +74,16 @@ void IpcClient::syncState(AppState& state) {
   }
 }
 
+void IpcClient::updateMenuEntries(AppState& state) {
+  state.menuEntries.clear();
+  for(const auto& wp : state.filteredWallpapers) {
+    std::string checkbox = state.selectedHashes.contains(wp.hash) ? "[x]" : "[ ]";
+    state.menuEntries.push_back(
+        std::format(" {} │ {:<8} │ {:<12} │ {}", checkbox, wp.hash.substr(0, 8), wp.visibility, wp.filename)
+    );
+  }
+}
+
 void IpcClient::applyFilterAndSort(AppState& state) {
   std::string activeHash;
   if(!state.filteredWallpapers.empty() && state.selectedIndex < static_cast<int>(state.filteredWallpapers.size())) {
@@ -102,10 +113,7 @@ void IpcClient::applyFilterAndSort(AppState& state) {
     return a.visibility < b.visibility;
   });
 
-  state.menuEntries.clear();
-  for(const auto& wp : state.filteredWallpapers) {
-    state.menuEntries.push_back(std::format(" {:<8} │ {:<12} │ {}", wp.hash.substr(0, 8), wp.visibility, wp.filename));
-  }
+  updateMenuEntries(state);
 
   bool selectionRestored = false;
   if(!activeHash.empty()) {
@@ -125,8 +133,10 @@ void IpcClient::applyFilterAndSort(AppState& state) {
   }
 }
 
-void IpcClient::executeCommand(AppState& state, const std::string& cmd) {
+void IpcClient::executeCommand(AppState& state, const std::string& cmd, bool skipSync) {
   std::string response = IpcClient::sendCommand(cmd);
   state.daemonLogs = stripAnsi(response);
-  IpcClient::syncState(state);
+  if(!skipSync) {
+    IpcClient::syncState(state);
+  }
 }

@@ -6,5 +6,6 @@ struct IpcClient {
   static std::string sendCommand(const std::string& commandStr);
   static void syncState(AppState& state);
   static void applyFilterAndSort(AppState& state);
-  static void executeCommand(AppState& state, const std::string& cmd);
+  static void updateMenuEntries(AppState& state);
+  static void executeCommand(AppState& state, const std::string& cmd, bool skipSync = false); 
 };

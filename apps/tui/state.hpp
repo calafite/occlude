@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <unordered_set> 
 
 struct WallpaperItem {
   std::string hash;
@@ -22,6 +23,9 @@ struct AppState {
   std::vector<WallpaperItem> allWallpapers;
   std::vector<WallpaperItem> filteredWallpapers;
   std::vector<std::string> menuEntries;
+  
+  std::unordered_set<std::string> selectedHashes;
+
   int selectedIndex = 0;
   std::string filterText;
   int sortModeIndex = 0;

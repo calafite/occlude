@@ -4,9 +4,11 @@
 #include "modals.hpp"
 
 #include <fcntl.h>
+#include <format>
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/event.hpp>
 #include <ftxui/dom/elements.hpp>
+#include <functional>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
@@ -39,11 +41,11 @@ namespace {
         close(devNull);
       }
 
-#if __APPLE__
+      #if __APPLE__
       const char* launcher = "open";
-#else
+      #else
       const char* launcher = "xdg-open";
-#endif
+      #endif
 
       auto* launcherV = const_cast<char*>(launcher);
       auto* cPath = const_cast<char*>(path.c_str());
@@ -56,7 +58,6 @@ namespace {
     waitpid(pid, &status, 0);
   }
   // NOLINTEND
-
   std::string GetSortModeName(int index) {
     if(index == 0) {
       return "Name";
@@ -65,6 +66,77 @@ namespace {
       return "Date";
     }
     return "Visibility";
+  }
+
+  void ToggleSingleSelection(AppState& state, const WallpaperItem& wallpaper) {
+    if(state.selectedHashes.contains(wallpaper.hash)) {
+      state.selectedHashes.erase(wallpaper.hash);
+    } else {
+      state.selectedHashes.insert(wallpaper.hash);
+    }
+    IpcClient::updateMenuEntries(state);
+  }
+
+  void ToggleAllSelection(AppState& state) {
+    bool allSelected = true;
+    for(const auto& wp : state.filteredWallpapers) {
+      if(!state.selectedHashes.contains(wp.hash)) {
+        allSelected = false;
+        break;
+      }
+    }
+
+    if(allSelected) {
+      for(const auto& wp : state.filteredWallpapers) {
+        state.selectedHashes.erase(wp.hash);
+      }
+    } else {
+      for(const auto& wp : state.filteredWallpapers) {
+        state.selectedHashes.insert(wp.hash);
+      }
+    }
+    IpcClient::updateMenuEntries(state);
+  }
+
+  bool HandleRenameAction(AppState& state, const WallpaperItem& wallpaper) {
+    if(!state.selectedHashes.empty()) {
+      state.daemonLogs = "ERR Blocked: Cannot rename while multiple wallpapers are selected.";
+      return true;
+    }
+    state.renameInput = wallpaper.filename;
+    state.showRenameModal = true;
+    return true;
+  }
+
+  bool HandleClassifyAction(AppState& state, const WallpaperItem& wallpaper) {
+    if(wallpaper.visibility == "Safe") {
+      state.classifyIndex = 0;
+    } else if(wallpaper.visibility == "Unsafe") {
+      state.classifyIndex = 1;
+    } else {
+      state.classifyIndex = 2;
+    }
+    state.showClassifyModal = true;
+    return true;
+  }
+
+  bool HandlePreviewAction(AppState& state, const WallpaperItem& wallpaper) {
+    launchExternalPreview(wallpaper.path);
+    state.daemonLogs = "Previewing file: " + wallpaper.filename;
+    return true;
+  }
+
+  bool HandleApplyAction(AppState& state, const WallpaperItem& wallpaper) {
+    if(state.systemMode == "Safe" && wallpaper.visibility != "Safe") {
+      state.daemonLogs = "ERR Blocked: Cannot apply non-safe wallpaper in Safe mode.";
+      return true;
+    }
+    if(state.systemMode == "Unsafe" && wallpaper.visibility == "Unclassified") {
+      state.daemonLogs = "ERR Blocked: Cannot apply unclassified wallpaper.";
+      return true;
+    }
+    IpcClient::executeCommand(state, "APPLY " + wallpaper.hash);
+    return true;
   }
 
   bool HandleGlobalDaemonKeys(AppState& state, const Event& event, const std::function<void()>& onQuit) {
@@ -99,45 +171,28 @@ namespace {
 
     const auto& wallpaper = state.filteredWallpapers[state.selectedIndex];
 
+    if(event == Event::Character(' ')) {
+      ToggleSingleSelection(state, wallpaper);
+      return true;
+    }
+    if(event == Event::Character('*')) {
+      ToggleAllSelection(state);
+      return true;
+    }
+    if(event == Event::Character('r') || event == Event::Character('R')) {
+      return HandleRenameAction(state, wallpaper);
+    }
+    if(event == Event::Character('v') || event == Event::Character('V')) {
+      return HandleClassifyAction(state, wallpaper);
+    }
     if(event == Event::Character('p') || event == Event::Character('P')) {
-      launchExternalPreview(wallpaper.path);
-      state.daemonLogs = "Previewing file: " + wallpaper.filename;
-      return true;
+      return HandlePreviewAction(state, wallpaper);
     }
-
     if(event == Event::Character('a') || event == Event::Character('A')) {
-      if(state.systemMode == "Safe" && wallpaper.visibility != "Safe") {
-        state.daemonLogs = "ERR Blocked: Cannot apply non-safe wallpaper in Safe mode.";
-        return true;
-      }
-      if(state.systemMode == "Unsafe" && wallpaper.visibility == "Unclassified") {
-        state.daemonLogs = "ERR Blocked: Cannot apply unclassified wallpaper.";
-        return true;
-      }
-      IpcClient::executeCommand(state, "APPLY " + wallpaper.hash);
-      return true;
+      return HandleApplyAction(state, wallpaper);
     }
-
     if(event == Event::Character('d') || event == Event::Character('D')) {
       state.showDeleteModal = true;
-      return true;
-    }
-
-    if(event == Event::Character('r') || event == Event::Character('R')) {
-      state.renameInput = wallpaper.filename;
-      state.showRenameModal = true;
-      return true;
-    }
-
-    if(event == Event::Character('v') || event == Event::Character('V')) {
-      if(wallpaper.visibility == "Safe") {
-        state.classifyIndex = 0;
-      } else if(wallpaper.visibility == "Unsafe") {
-        state.classifyIndex = 1;
-      } else {
-        state.classifyIndex = 2;
-      }
-      state.showClassifyModal = true;
       return true;
     }
 
@@ -181,6 +236,7 @@ namespace {
     return hbox(
                {text(" [/] Search ") | dim | bold,
                 text(" [Esc] Unfocus ") | dim,
+                text(" [Space/*] Select ") | dim | bold,
                 text(" [j/k] Nav ") | dim,
                 text(" [a] Apply ") | dim | bold,
                 text(" [p] Preview ") | dim | bold,
@@ -224,8 +280,7 @@ namespace {
                {hbox({text("Search (/): "), filterWithEvents->Render() | border}),
                 hbox({text("Sort Mode (S): ") | dim, text(sortStr) | bold}),
                 separator(),
-                hbox({text("  HASH     │ VISIBILITY   │ FILENAME") | bold}),
-                separator(),
+                hbox({text(" SEL │ HASH     │ VISIBILITY   │ FILENAME") | bold}),
                 wallpaperMenu->Render() | vscroll_indicator | frame | flex}
            ) |
         border | flex;
@@ -250,50 +305,39 @@ namespace {
     return vbox({header, separator(), hbox({leftPanel, rightPanel}) | flex, logs, RenderHelpBar()});
   }
 
-} // namespace
-
-Component CreateMainUI(AppState& state, const std::function<void()>& onQuit) {
-  auto inputFilter = Input(&state.filterText, "Type to filter...");
-  auto filterWithEvents = CatchEvent(inputFilter, [&state](const Event& event) {
-    if(event.is_character() || event == Event::Backspace || event == Event::Delete) {
-      IpcClient::applyFilterAndSort(state);
-    }
-    return false;
-  });
-
-  auto wallpaperMenu = Menu(&state.menuEntries, &state.selectedIndex);
-
-  auto mainLayer = Container::Vertical({filterWithEvents, wallpaperMenu});
-
-  auto keyRouter = CatchEvent(mainLayer, [&state, onQuit, inputFilter, wallpaperMenu](const Event& event) {
-    return HandleMainLayerKeys(state, event, inputFilter, wallpaperMenu, onQuit);
-  });
-
-  auto mainLayoutRenderer = Renderer(keyRouter, [&state, filterWithEvents, wallpaperMenu]() {
-    Element leftPanel = RenderLeftPanel(state, filterWithEvents, wallpaperMenu);
-    Element rightPanel = RenderWallpaperDetail(state) | border | size(WIDTH, EQUAL, 50);
-    return RenderMainView(state, leftPanel, rightPanel);
-  });
-
-  auto renameModal = CreateRenameModal(state, wallpaperMenu);
-  auto renameRenderer = Renderer(renameModal, [&state, renameModal]() {
+  Element RenderRenameModalUI(const Component& renameModal) {
     return vbox({text("Rename Wallpaper") | bold | center, separator(), renameModal->Render() | center}) | border |
         bgcolor(Color::Black) | center;
-  });
+  }
 
-  auto deleteModal = CreateDeleteModal(state, wallpaperMenu);
-  auto deleteRenderer = Renderer(deleteModal, [&state, deleteModal]() {
-    return vbox(
-               {text("Delete Wallpaper?") | bold | center,
-                text("Are you sure you want to permanently delete this?") | dim | center,
-                separator(),
-                deleteModal->Render() | center}
-           ) |
-        border | bgcolor(Color::Black) | center;
-  });
+  Element RenderDeleteModalUI(const AppState& state, const Component& deleteModal) {
+    std::string title = state.selectedHashes.empty() ? "Delete Wallpaper?" : "Bulk Delete Wallpapers?";
+    const bool promptC = state.selectedHashes.empty();
+    std::string prompt;
 
-  auto toggleModal = CreateToggleModal(state, wallpaperMenu);
-  auto toggleRenderer = Renderer(toggleModal, [&state, toggleModal]() {
+    if(promptC) {
+      prompt = "Are you sure you want to permanently delete this?";
+    } else {
+      prompt = std::format(
+          "Are you sure you want to permanently delete {} selected wallpapers?",
+          state.selectedHashes.size()
+      );
+    }
+
+    return vbox({
+               text(title)                    //
+                   | bold | center,           //
+               text(prompt)                   //
+                   | dim | center,            //
+               separator(),                   //
+               deleteModal->Render() | center //
+           })                                 //
+        | border                              //
+        | bgcolor(Color::Black)               //
+        | center;                             //
+  }
+
+  Element RenderToggleModalUI(const Component& toggleModal) {
     return vbox(
                {text("Toggle System Mode") | bold | center,
                 text("Switch between Safe and Unsafe mode?") | dim | center,
@@ -301,13 +345,124 @@ Component CreateMainUI(AppState& state, const std::function<void()>& onQuit) {
                 toggleModal->Render() | center}
            ) |
         border | bgcolor(Color::Black) | center;
-  });
+  }
+
+  Element RenderClassifyModalUI(const AppState& state, const Component& classifyModal) {
+    std::string title = state.selectedHashes.empty()
+        ? "Classify Wallpaper"
+        : std::format("Bulk Classify {} Wallpapers", state.selectedHashes.size());
+    return vbox({text(title) | bold | center, separator(), classifyModal->Render() | center}) | border |
+        bgcolor(Color::Black) | center;
+  }
+
+  struct FilterEventHandler {
+    std::reference_wrapper<AppState> state;
+
+    bool operator()(const Event& event) const {
+      if(event.is_character() || event == Event::Backspace || event == Event::Delete) {
+        IpcClient::applyFilterAndSort(state.get());
+      }
+      return false;
+    }
+  };
+
+  struct MainLayerEventHandler {
+    std::reference_wrapper<AppState> state;
+    std::function<void()> onQuit;
+    Component inputFilter;
+    Component wallpaperMenu;
+
+    bool operator()(const Event& event) const {
+      return HandleMainLayerKeys(state.get(), event, inputFilter, wallpaperMenu, onQuit);
+    }
+  };
+
+  struct MainLayoutRendererImpl {
+    std::reference_wrapper<AppState> state;
+    Component filterWithEvents;
+    Component wallpaperMenu;
+
+    Element operator()() const {
+      Element leftPanel = RenderLeftPanel(state.get(), filterWithEvents, wallpaperMenu);
+      Element rightPanel = RenderWallpaperDetail(state.get()) | border | size(WIDTH, EQUAL, 50);
+      return RenderMainView(state.get(), leftPanel, rightPanel);
+    }
+  };
+
+  struct RenameRendererImpl {
+    Component renameModal;
+    Element operator()() const {
+      return RenderRenameModalUI(renameModal);
+    }
+  };
+
+  struct DeleteRendererImpl {
+    std::reference_wrapper<AppState> state;
+    Component deleteModal;
+
+    Element operator()() const {
+      return RenderDeleteModalUI(state.get(), deleteModal);
+    }
+  };
+
+  struct ToggleRendererImpl {
+    Component toggleModal;
+    Element operator()() const {
+      return RenderToggleModalUI(toggleModal);
+    }
+  };
+
+  struct ClassifyRendererImpl {
+    std::reference_wrapper<AppState> state;
+    Component classifyModal;
+
+    Element operator()() const {
+      return RenderClassifyModalUI(state.get(), classifyModal);
+    }
+  };
+
+} // namespace
+
+Component CreateMainUI(AppState& state, const std::function<void()>& onQuit) {
+  auto inputFilter = Input(&state.filterText, "Type to filter...");
+
+  FilterEventHandler filterHandler{.state = std::ref(state)};
+  auto filterWithEvents = CatchEvent(inputFilter, filterHandler);
+
+  auto wallpaperMenu = Menu(&state.menuEntries, &state.selectedIndex);
+
+  auto mainLayer = Container::Vertical({filterWithEvents, wallpaperMenu});
+
+  MainLayerEventHandler mainLayerHandler{
+      .state = std::ref(state),
+      .onQuit = onQuit,
+      .inputFilter = inputFilter,
+      .wallpaperMenu = wallpaperMenu
+  };
+  auto keyRouter = CatchEvent(mainLayer, mainLayerHandler);
+
+  MainLayoutRendererImpl mainLayoutImpl{
+      .state = std::ref(state),
+      .filterWithEvents = filterWithEvents,
+      .wallpaperMenu = wallpaperMenu
+  };
+  auto mainLayoutRenderer = Renderer(keyRouter, mainLayoutImpl);
+
+  auto renameModal = CreateRenameModal(state, wallpaperMenu);
+  RenameRendererImpl renameImpl{.renameModal = renameModal};
+  auto renameRenderer = Renderer(renameModal, renameImpl);
+
+  auto deleteModal = CreateDeleteModal(state, wallpaperMenu);
+  DeleteRendererImpl deleteImpl{.state = std::ref(state), .deleteModal = deleteModal};
+  auto deleteRenderer = Renderer(deleteModal, deleteImpl);
+
+  auto toggleModal = CreateToggleModal(state, wallpaperMenu);
+  ToggleRendererImpl toggleImpl{.toggleModal = toggleModal};
+  auto toggleRenderer = Renderer(toggleModal, toggleImpl);
 
   auto classifyModal = CreateClassifyModal(state, wallpaperMenu);
-  auto classifyRenderer = Renderer(classifyModal, [&state, classifyModal]() {
-    return vbox({text("Classify Wallpaper") | bold | center, separator(), classifyModal->Render() | center}) | border |
-        bgcolor(Color::Black) | center;
-  });
+  ClassifyRendererImpl classifyImpl{.state = std::ref(state), .classifyModal = classifyModal};
+  auto classifyRenderer = Renderer(classifyModal, classifyImpl);
 
   auto ui = Modal(mainLayoutRenderer, renameRenderer, &state.showRenameModal);
   ui = Modal(ui, deleteRenderer, &state.showDeleteModal);
@@ -316,5 +471,4 @@ Component CreateMainUI(AppState& state, const std::function<void()>& onQuit) {
 
   return ui;
 }
-
 // NOLINTEND(readability-identifier-naming)
