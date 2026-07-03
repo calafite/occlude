@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <ranges>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 
 struct Hash {
@@ -34,6 +35,7 @@ struct Hash {
   }
 
   static Hash fromBytes(ByteSpan bytes);
+  [[nodiscard]] std::string toString() const;
 
 private:
   static constexpr std::uint8_t parseChar(char character) {

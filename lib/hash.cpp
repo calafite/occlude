@@ -5,6 +5,8 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <format>
+#include <string>
 #include <vector>
 
 namespace {
@@ -33,4 +35,13 @@ Hash Hash::fromBytes(ByteSpan bytes) {
   HashByteArray rBytes{};
   std::ranges::transform(digest, rBytes.begin(), castByte);
   return Hash(rBytes);
+}
+
+std::string Hash::toString() const {
+  std::string out;
+  out.reserve(HASH_SIZE * 2);
+  for(std::byte b : value) {
+    out += std::format("{:02x}", static_cast<unsigned char>(b));
+  }
+  return out;
 }

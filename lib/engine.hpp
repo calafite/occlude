@@ -15,33 +15,24 @@
 #include <format>
 #include <functional>
 
-namespace detail {
-  inline std::string toHex(Hash const& hash) {
-    std::string out;
-    out.reserve(HASH_SIZE * 2);
-    for(std::byte b : hash.value) {
-      out += std::format("{:02x}", static_cast<unsigned char>(b));
-    }
-    return out;
-  }
-} // namespace detail
-
 template<FileSystem FS, CommandRunner Runner>
 struct Engine {
   std::reference_wrapper<FS> fs;
+  std::reference_wrapper<Runner> runner;
   Settings settings;
   ManifestStore<FS> manifestStore;
   Manifest manifest;
   WallpaperStore<FS> wallpaperStore;
   WallpaperSetter<Runner> setter;
 
-  Engine(FS& fsRef, Runner& runner, Settings s)
+  Engine(FS& fsRef, Runner& runnerRef, Settings s)
       : fs(fsRef),                                                                                             //
+        runner(runnerRef),                                                                                     //
         settings(std::move(s)),                                                                                //
         manifestStore(fsRef, settings.manifestPath),                                                           //
         manifest(manifestStore.load()),                                                                        //
         wallpaperStore(manifest, fsRef, settings.publicRoot, settings.privateRoot, settings.unclassifiedRoot), //
-        setter(runner, settings) {}                                                                            //
+        setter(runnerRef, settings) {}                                                                         //
 
   void cycle() {
     while(true) {
@@ -52,7 +43,7 @@ struct Engine {
       }
 
       std::string activePathStr;
-      auto activeOut = SystemCommandRunner::runYieldOutput(settings.getterCommandTemplate);
+      auto activeOut = runner.get().runYieldOutput(settings.getterCommandTemplate);
       if(activeOut) {
         activePathStr = *activeOut;
       }
@@ -63,7 +54,7 @@ struct Engine {
 
       if(available.size() > 1) {
         std::erase_if(available, [&](const auto& wpRef) {
-          bool isEngineCurrent = (detail::toHex(wpRef.get().hash) == currentHashHex);
+          bool isEngineCurrent = (wpRef.get().hash.toString() == currentHashHex);
           bool isVisuallyCurrent =
               (!activePathStr.empty() &&
                (wpRef.get().absPath.string() == activePathStr ||
@@ -91,6 +82,38 @@ struct Engine {
         break;
       }
       logging::warn("Engine: Cycle skipped a broken/missing wallpaper. Retrying...");
+    }
+  }
+
+  void resolveActiveIngestion(Hash const& hash, FilePath const& sourcePath, Visibility visibility) {
+    bool wasActive = false;
+    auto activeOut = runner.get().runYieldOutput(settings.getterCommandTemplate);
+    if(activeOut) {
+      FilePath absPath = resolveTilde(sourcePath);
+      FilePath absCurrent = resolveTilde(*activeOut);
+      if(absPath == absCurrent) {
+        wasActive = true;
+      }
+    }
+
+    if(wasActive) {
+      if(visibility == Visibility::Unclassified) {
+        cycle();
+      } else {
+        const bool isSafeMode = manifest.state.stateMode == StateMode::Safe;
+        bool visibilityMatches = false;
+        if(isSafeMode) {
+          visibilityMatches = visibility == Visibility::Safe;
+        } else {
+          visibilityMatches = visibility == Visibility::Safe || visibility == Visibility::Unsafe;
+        }
+
+        if(visibilityMatches) {
+          applyWallpaper(hash);
+        } else {
+          cycle();
+        }
+      }
     }
   }
 
@@ -218,7 +241,7 @@ struct Engine {
       }
     }
 
-    std::string hashHex = detail::toHex(hash);
+    std::string hashHex = hash.toString();
     if(manifest.state.stateMode == StateMode::Safe) {
       manifest.state.publicCurrent = hashHex;
     } else {

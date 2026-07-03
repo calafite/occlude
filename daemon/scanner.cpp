@@ -1,8 +1,10 @@
 #include "scanner.hpp"
 
+#include "../lib/fs.hpp"
 #include "../lib/log.hpp"
-#include "utils.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
@@ -108,45 +110,16 @@ void WallpaperScanner::processFile(const std::filesystem::directory_entry& entry
       currentVisibility = isSafeMode ? Visibility::Safe : Visibility::Unsafe;
     }
 
-    bool wasActive = false;
-    auto activeOut = SystemCommandRunner::runYieldOutput(settings.get().getterCommandTemplate);
-    if(activeOut) {
-      FilePath absPath = resolveTilde(path);
-      FilePath absCurrent = resolveTilde(*activeOut);
-      if(absPath == absCurrent) {
-        wasActive = true;
-      }
-    }
-
     const Hash hash = engine.get().wallpaperStore.ingest(path, currentVisibility);
 
-    if(wasActive && currentVisibility != Visibility::Unclassified) {
-      const bool isSafeMode = engine.get().manifest.state.stateMode == StateMode::Safe;
-
-      bool visibilityMatches = false;
-      if(isSafeMode) {
-        visibilityMatches = currentVisibility == Visibility::Safe;
-      } else {
-        visibilityMatches = currentVisibility == Visibility::Safe || currentVisibility == Visibility::Unsafe;
-      }
-
-      if(visibilityMatches) {
-        engine.get().applyWallpaper(hash);
-      } else {
-        engine.get().cycle();
-      }
-    } else if(wasActive && currentVisibility == Visibility::Unclassified) {
-      engine.get().cycle();
-    }
+    engine.get().resolveActiveIngestion(hash, path, currentVisibility);
 
     engine.get().manifestStore.save(engine.get().manifest);
 
-    std::string visibilityName = "UNCLASSIFIED";
-    if(currentVisibility == Visibility::Safe) {
-      visibilityName = "SAFE";
-    } else if(currentVisibility == Visibility::Unsafe) {
-      visibilityName = "UNSAFE";
-    }
+    std::string visibilityName(toString(currentVisibility));
+    std::ranges::transform(visibilityName, visibilityName.begin(), [](unsigned char c) {
+      return std::toupper(c);
+    });
 
     logging::info(
         "Scanner discovered and automatically ingested new wallpaper: {} as {}",

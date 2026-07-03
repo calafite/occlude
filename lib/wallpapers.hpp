@@ -12,6 +12,15 @@ enum class Visibility : std::uint8_t {
   Unclassified,
 };
 
+constexpr std::string_view toString(Visibility visibility) {
+  switch(visibility) {
+    case Visibility::Safe: return "Safe";
+    case Visibility::Unsafe: return "Unsafe";
+    case Visibility::Unclassified: return "Unclassified";
+  }
+  return "Unknown";
+}
+
 struct Wallpaper {
   FilePath absPath;
   Hash hash;
@@ -32,3 +41,4 @@ struct Wallpaper {
         visibility(visibilityV),      //
         lastShown(lastShownV) {}      //
 };
+

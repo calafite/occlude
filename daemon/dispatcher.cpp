@@ -1,6 +1,6 @@
 #include "dispatcher.hpp"
 
-#include "utils.hpp"
+#include "../lib/fs.hpp"
 
 #include <format>
 #include <nlohmann/json.hpp>
@@ -65,30 +65,20 @@ std::string CommandDispatcher::handleList(const CommandMessage& /*message*/) {
   for(const auto& wallpaperRef : allWallpapers) {
     const auto& wallpaper = wallpaperRef.get();
 
-    std::string hashHex;
-    hashHex.reserve(HASH_SIZE * 2);
-    for(std::byte byte : wallpaper.hash.value) {
-      hashHex += std::format("{:02x}", static_cast<unsigned char>(byte));
-    }
-
-    std::string visibilityString;
+    std::string hashHex = wallpaper.hash.toString();
+    std::string visibilityString(toString(wallpaper.visibility));
     std::string visibilityColor;
+
     switch(wallpaper.visibility) {
-    case Visibility::Safe: {
-      visibilityString = "Safe";
+    case Visibility::Safe:
       visibilityColor = "\033[32m";
       break;
-    }
-    case Visibility::Unsafe: {
-      visibilityString = "Unsafe";
+    case Visibility::Unsafe:
       visibilityColor = "\033[31m";
       break;
-    }
-    case Visibility::Unclassified: {
-      visibilityString = "Unclassified";
+    case Visibility::Unclassified:
       visibilityColor = "\033[33m";
       break;
-    }
     }
 
     const std::string dateString = std::format("{:%Y-%m-%d %H:%M:%S}", wallpaper.createdAt);
@@ -118,45 +108,18 @@ std::string CommandDispatcher::handleIngest(const CommandMessage& message, Visib
   }
   const FilePath path = message.argument;
 
-  bool wasActive = false;
-  const auto currentResult = SystemCommandRunner::runYieldOutput(settings.get().getterCommandTemplate);
-  const bool hasCurrentResult = currentResult.has_value();
-  if(hasCurrentResult) {
-    const FilePath absolutePath = resolveTilde(path);
-    const FilePath absoluteCurrent = resolveTilde(*currentResult);
-    const bool pathsEqual = absolutePath == absoluteCurrent;
-    if(pathsEqual) {
-      wasActive = true;
-    }
-  }
-
   std::lock_guard<std::mutex> lock(engineMutex.get());
   const Hash hash = engine.get().wallpaperStore.ingest(path, visibility);
   engine.get().manifestStore.save(engine.get().manifest);
 
-  if(wasActive) {
-    const bool isSafeMode = engine.get().manifest.state.stateMode == StateMode::Safe;
-
-    bool visibilityMatches = false;
-    if(isSafeMode) {
-      visibilityMatches = visibility == Visibility::Safe;
-    } else {
-      visibilityMatches = visibility == Visibility::Safe || visibility == Visibility::Unsafe;
-    }
-
-    if(visibilityMatches) {
-      engine.get().applyWallpaper(hash);
-    } else {
-      engine.get().cycle();
-    }
-  }
+  engine.get().resolveActiveIngestion(hash, path, visibility);
 
   const bool isSafeType = visibility == Visibility::Safe;
   return isSafeType ? "OK \033[32m✔\033[0m Ingested safe wallpaper" : "OK \033[32m✔\033[0m Ingested unsafe wallpaper";
 }
 
 std::string CommandDispatcher::handleCurrent(const CommandMessage& /*message*/) {
-  const auto currentResult = SystemCommandRunner::runYieldOutput(settings.get().getterCommandTemplate);
+  const auto currentResult = engine.get().runner.get().runYieldOutput(settings.get().getterCommandTemplate);
   const bool hasResult = currentResult.has_value();
   if(hasResult) {
     return "OK " + *currentResult;
@@ -223,29 +186,10 @@ std::string CommandDispatcher::handleDump(const CommandMessage& /*message*/) {
   for(const auto& wallpaperRef : allWallpapers) {
     const auto& wallpaper = wallpaperRef.get();
 
-    std::string hashHex;
-    hashHex.reserve(HASH_SIZE * 2);
-    for(std::byte byte : wallpaper.hash.value) {
-      hashHex += std::format("{:02x}", static_cast<unsigned char>(byte));
-    }
-
-    std::string visibilityString;
-    switch(wallpaper.visibility) {
-    case Visibility::Safe:
-      visibilityString = "Safe";
-      break;
-    case Visibility::Unsafe:
-      visibilityString = "Unsafe";
-      break;
-    case Visibility::Unclassified:
-      visibilityString = "Unclassified";
-      break;
-    }
-
     nlohmann::json wallpaperObj;
-    wallpaperObj["hash"] = hashHex;
+    wallpaperObj["hash"] = wallpaper.hash.toString();
     wallpaperObj["path"] = wallpaper.absPath.string();
-    wallpaperObj["visibility"] = visibilityString;
+    wallpaperObj["visibility"] = toString(wallpaper.visibility);
     wallpaperObj["createdAt"] = std::format("{:%Y-%m-%d %H:%M:%S}", wallpaper.createdAt);
 
     if(wallpaper.lastShown.has_value()) {
