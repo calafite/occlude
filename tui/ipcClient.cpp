@@ -57,7 +57,11 @@ void IpcClient::syncState(AppState& state) {
       wp.filename = std::filesystem::path(wp.path).filename().string();
       wp.visibility = item["visibility"].get<std::string>();
       wp.createdAt = item["createdAt"].get<std::string>();
-      wp.lastShown = item["lastShown"].is_string() ? item["lastShown"].get<std::string>() : "Never";
+      if(item["lastShown"].is_string()) {
+        wp.lastShown = item["lastShown"].get<std::string>();
+      } else {
+        wp.lastShown = "Never";
+      }
       state.allWallpapers.push_back(wp);
     }
     applyFilterAndSort(state);
@@ -98,4 +102,10 @@ void IpcClient::applyFilterAndSort(AppState& state) {
   if(state.selectedIndex >= static_cast<int>(state.filteredWallpapers.size())) {
     state.selectedIndex = std::max(0, static_cast<int>(state.filteredWallpapers.size()) - 1);
   }
+}
+
+void IpcClient::executeCommand(AppState& state, const std::string& cmd) {
+  std::string response = IpcClient::sendCommand(cmd);
+  state.daemonLogs = stripAnsi(response);
+  IpcClient::syncState(state);
 }

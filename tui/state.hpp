@@ -27,4 +27,9 @@ struct AppState {
   int sortModeIndex = 0;
   bool showRenameModal = false;
   std::string renameInput;
+  bool showDeleteModal = false;
+  bool showToggleModal = false;
+  bool showClassifyModal = false;
+  int classifyIndex = 0;
+  std::vector<std::string> classifyEntries = {"Safe", "Unsafe", "Unclassified"};
 };

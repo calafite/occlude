@@ -63,6 +63,7 @@ add_executable(occlude-tui
     tui/main.cpp
     tui/ipcClient.cpp
     tui/components.cpp
+    tui/modals.cpp
 )
 
 target_include_directories(occlude-tui PRIVATE
