@@ -36,18 +36,12 @@ struct Engine {
   WallpaperSetter<Runner> setter;
 
   Engine(FS& fsRef, Runner& runner, Settings s)
-      : fs(fsRef),                                   //
-        settings(std::move(s)),                      //
-        manifestStore(fsRef, settings.manifestPath), //
-        manifest(manifestStore.load()),              //
-        wallpaperStore(
-            manifest,             //
-            fsRef,                //
-            settings.publicRoot,  //
-            settings.privateRoot, //
-            settings.unclassifiedRoot
-        ), //
-        setter(runner, settings) {}
+      : fs(fsRef),                                                                                             //
+        settings(std::move(s)),                                                                                //
+        manifestStore(fsRef, settings.manifestPath),                                                           //
+        manifest(manifestStore.load()),                                                                        //
+        wallpaperStore(manifest, fsRef, settings.publicRoot, settings.privateRoot, settings.unclassifiedRoot), //
+        setter(runner, settings) {}                                                                            //
 
   void cycle() {
     while(true) {
@@ -141,6 +135,7 @@ struct Engine {
         return;
       }
     }
+
     cycle();
   }
 
@@ -198,6 +193,14 @@ struct Engine {
     }
 
     FilePath currentPath = found.value().absPath;
+
+    // Fix: If file is physically missing, purge it.
+    if(!fs.get().exists(currentPath)) {
+      manifest.deleteWallpaper(hash);
+      manifestStore.save(manifest);
+      throw std::runtime_error("Source file missing from disk. Removed from database.");
+    }
+
     FilePath targetRoot;
     if(newVisibility == Visibility::Unsafe) {
       targetRoot = settings.privateRoot;
@@ -221,6 +224,7 @@ struct Engine {
         break;
       }
     }
+
     manifestStore.save(manifest);
   }
 
@@ -229,10 +233,11 @@ struct Engine {
     if(!found) {
       throw std::runtime_error("Wallpaper not found in manifest");
     }
-    try {
-      fs.get().remove(found.value().absPath);
-    } catch(...) {
-      logging::error("Unknown exception caught when deleting wallpaper.");
+
+    // Fix: Graceful physical deletion
+    FilePath path = found.value().absPath;
+    if(fs.get().exists(path)) {
+      fs.get().remove(path);
     }
 
     manifest.deleteWallpaper(hash);
@@ -246,6 +251,13 @@ struct Engine {
     }
 
     FilePath oldPath = found.value().absPath;
+
+    if(!fs.get().exists(oldPath)) {
+      manifest.deleteWallpaper(hash);
+      manifestStore.save(manifest);
+      throw std::runtime_error("Source file missing from disk. Removed from database.");
+    }
+
     FilePath newPath = oldPath.parent_path() / newName;
 
     if(oldPath == newPath) {
@@ -261,6 +273,7 @@ struct Engine {
         break;
       }
     }
+
     manifestStore.save(manifest);
   }
 };
