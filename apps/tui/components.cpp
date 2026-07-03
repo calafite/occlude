@@ -1,5 +1,4 @@
 #include "components.hpp"
-
 #include "ipcClient.hpp"
 #include "modals.hpp"
 

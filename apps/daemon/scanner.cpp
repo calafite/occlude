@@ -1,7 +1,7 @@
 #include "scanner.hpp"
 
-#include "../lib/fs.hpp"
-#include "../lib/log.hpp"
+#include "../../lib/io/fs.hpp"
+#include "../../lib/utils/log.hpp"
 
 #include <algorithm>
 #include <cctype>

@@ -1,7 +1,8 @@
 #pragma once
-#include "common.hpp"
-#include "log.hpp"
-#include "settings.hpp"
+
+#include "../utils/common.hpp"
+#include "../utils/log.hpp"
+#include "../core/settings.hpp"
 
 #include <cstdlib>
 #include <filesystem>

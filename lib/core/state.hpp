@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common.hpp"
-#include "hash.hpp"
-#include "wallpapers.hpp"
+#include "../utils/common.hpp"
+#include "../utils/hash.hpp"
+#include "../core/wallpapers.hpp"
 
 #include <cstdint>
 #include <memory>

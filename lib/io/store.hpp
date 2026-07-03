@@ -1,9 +1,8 @@
 #pragma once
-
-#include "common.hpp"
-#include "fs.hpp"
-#include "hash.hpp"
-#include "state.hpp"
+#include "../core/state.hpp"
+#include "../io/fs.hpp"
+#include "../utils/common.hpp"
+#include "../utils/hash.hpp"
 
 #include <bit>
 #include <chrono>

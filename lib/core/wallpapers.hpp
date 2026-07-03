@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common.hpp"
-#include "hash.hpp"
+#include "../utils/common.hpp"
+#include "../utils/hash.hpp"
 
 #include <cstdint>
 #include <optional>

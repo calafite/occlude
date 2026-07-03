@@ -1,5 +1,5 @@
 #include "ipcClient.hpp"
-#include "../lib/ipc.hpp"
+#include "../../lib/ipc/ipc.hpp"
 
 #include <algorithm>
 #include <cctype>

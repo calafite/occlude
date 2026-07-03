@@ -19,40 +19,44 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(json ftxui)
 
+# Combined library containing all core domain, IO, and utilities
 add_library(occlude_lib STATIC
-    lib/fs.cpp
-    lib/hash.cpp
-    lib/state.cpp
+    lib/io/fs.cpp
+    lib/utils/hash.cpp
+    lib/core/state.cpp
 )
 
 target_include_directories(occlude_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/3p
 )
 
 target_link_libraries(occlude_lib PUBLIC
     nlohmann_json::nlohmann_json
 )
 
+# Daemon executable
 add_executable(occluded
-    daemon/main.cpp
-    daemon/scanner.cpp
-    daemon/dispatcher.cpp
+    apps/daemon/main.cpp
+    apps/daemon/scanner.cpp
+    apps/daemon/dispatcher.cpp
 )
 
 target_include_directories(occluded PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/daemon
+    ${CMAKE_CURRENT_SOURCE_DIR}/apps/daemon
 )
 
 target_link_libraries(occluded PRIVATE
     occlude_lib
 )
 
+# Command-Line Client
 add_executable(occlude
-    interface/main.cpp
+    apps/cli/main.cpp
 )
 
 target_include_directories(occlude PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/interface
+    ${CMAKE_CURRENT_SOURCE_DIR}/apps/cli
 )
 
 target_link_libraries(occlude PRIVATE
@@ -60,14 +64,14 @@ target_link_libraries(occlude PRIVATE
 )
 
 add_executable(occlude-tui
-    tui/main.cpp
-    tui/ipcClient.cpp
-    tui/components.cpp
-    tui/modals.cpp
+    apps/tui/main.cpp
+    apps/tui/ipcClient.cpp
+    apps/tui/components.cpp
+    apps/tui/modals.cpp
 )
 
 target_include_directories(occlude-tui PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/tui
+    ${CMAKE_CURRENT_SOURCE_DIR}/apps/tui
 )
 
 target_link_libraries(occlude-tui PRIVATE

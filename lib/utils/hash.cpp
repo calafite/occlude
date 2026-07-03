@@ -1,7 +1,6 @@
-#include "hash.hpp"
-
-#include "common.hpp"
-#include "picosha2.h"
+#include "../utils/hash.hpp"
+#include "../utils/common.hpp"
+#include "../3p/picosha2.h"
 
 #include <algorithm>
 #include <cstddef>

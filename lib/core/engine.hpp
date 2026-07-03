@@ -1,13 +1,14 @@
 #pragma once
-#include "common.hpp"
-#include "hash.hpp"
-#include "log.hpp"
-#include "setter.hpp"
-#include "settings.hpp"
-#include "state.hpp"
-#include "store.hpp"
-#include "wallpaperStore.hpp"
-#include "wallpapers.hpp"
+
+#include "../core/settings.hpp"
+#include "../core/state.hpp"
+#include "../core/wallpapers.hpp"
+#include "../io/setter.hpp"
+#include "../io/store.hpp"
+#include "../io/wallpaperStore.hpp"
+#include "../utils/common.hpp"
+#include "../utils/hash.hpp"
+#include "../utils/log.hpp"
 
 #include <algorithm>
 #include <chrono>

@@ -1,8 +1,7 @@
-#include "state.hpp"
-
-#include "common.hpp"
-#include "hash.hpp"
-#include "wallpapers.hpp"
+#include "../core/state.hpp"
+#include "../utils/common.hpp"
+#include "../utils/hash.hpp"
+#include "../core/wallpapers.hpp"
 
 #include <memory>
 #include <optional>

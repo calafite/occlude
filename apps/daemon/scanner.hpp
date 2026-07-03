@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../lib/engine.hpp"
-#include "../lib/settings.hpp"
+#include "../../lib/core/engine.hpp"
+#include "../../lib/core/settings.hpp"
 
 #include <filesystem>
 #include <mutex>

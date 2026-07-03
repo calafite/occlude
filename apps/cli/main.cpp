@@ -1,4 +1,4 @@
-#include "../lib/ipc.hpp"
+#include "../../lib/ipc/ipc.hpp"
 #include "cli.hpp"
 
 #include <algorithm>

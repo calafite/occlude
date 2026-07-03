@@ -1,6 +1,5 @@
-#include "fs.hpp"
-
-#include "common.hpp"
+#include "../io/fs.hpp"
+#include "../utils/common.hpp"
 
 #include <algorithm>
 #include <cstdio>

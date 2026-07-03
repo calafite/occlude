@@ -1,6 +1,6 @@
 #pragma once
-#include "common.hpp"
-#include "settings.hpp"
+#include "../utils/common.hpp"
+#include "../core/settings.hpp"
 
 #include <array>
 #include <cerrno>

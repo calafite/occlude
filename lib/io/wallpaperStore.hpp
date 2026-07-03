@@ -1,9 +1,9 @@
 #pragma once
-#include "common.hpp"
-#include "fs.hpp"
-#include "hash.hpp"
-#include "state.hpp"
-#include "wallpapers.hpp"
+#include "../utils/common.hpp"
+#include "../io/fs.hpp"
+#include "../utils/hash.hpp"
+#include "../core/state.hpp"
+#include "../core/wallpapers.hpp"
 
 #include <chrono>
 #include <expected>
