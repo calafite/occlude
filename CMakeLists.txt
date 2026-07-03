@@ -19,7 +19,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(json ftxui)
 
-# Combined library containing all core domain, IO, and utilities
 add_library(occlude_lib STATIC
     lib/io/fs.cpp
     lib/utils/hash.cpp
@@ -35,10 +34,10 @@ target_link_libraries(occlude_lib PUBLIC
     nlohmann_json::nlohmann_json
 )
 
-# Daemon executable
 add_executable(occluded
     apps/daemon/main.cpp
     apps/daemon/scanner.cpp
+    apps/daemon/cycler.cpp 
     apps/daemon/dispatcher.cpp
 )
 
@@ -50,7 +49,6 @@ target_link_libraries(occluded PRIVATE
     occlude_lib
 )
 
-# Command-Line Client
 add_executable(occlude
     apps/cli/main.cpp
 )

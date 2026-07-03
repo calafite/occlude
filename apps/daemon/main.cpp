@@ -4,6 +4,7 @@
 #include "../../lib/ipc/ipc.hpp"
 #include "../../lib/utils/log.hpp"
 #include "../../lib/io/setter.hpp"
+#include "cycler.hpp"
 #include "dispatcher.hpp"
 #include "parsing.hpp"
 #include "scanner.hpp"
@@ -34,11 +35,12 @@ int main() {
 
   std::mutex engineMutex;
 
-  // Initialize background scanner
   WallpaperScanner scanner(engine, engineMutex, settings);
   scanner.start();
 
-  // Initialize command router with scanner injection
+  WallpaperCycler cycler(engine, engineMutex, settings);
+  cycler.start();
+
   CommandDispatcher dispatcher(engine, engineMutex, settings, scanner);
 
   auto serverResult = IPC::Server::create();

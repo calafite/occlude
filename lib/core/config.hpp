@@ -4,7 +4,6 @@
 #include "../utils/log.hpp"
 #include "../core/settings.hpp"
 
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -21,6 +20,7 @@
       .getterCommandTemplate = "noctalia msg wallpaper-get",
       .defaultDownloadDirectory = "",
       .scanIntervalSeconds = 30,
+      .cycleIntervalSeconds = 0, 
       .defaultIngestionVisibility = "unclassified"
   };
 }
@@ -36,6 +36,7 @@ inline void to_json(nlohmann::json& j, Settings const& settings) {
       {"getterCommandTemplate", settings.getterCommandTemplate},
       {"defaultDownloadDirectory", settings.defaultDownloadDirectory},
       {"scanIntervalSeconds", settings.scanIntervalSeconds},
+      {"cycleIntervalSeconds", settings.cycleIntervalSeconds}, // Added
       {"defaultIngestionVisibility", settings.defaultIngestionVisibility}
   };
 }
@@ -50,6 +51,7 @@ inline void from_json(nlohmann::json const& j, Settings& settings) {
   settings.getterCommandTemplate = j.value("getterCommandTemplate", defaults.getterCommandTemplate);
   settings.defaultDownloadDirectory = j.value("defaultDownloadDirectory", defaults.defaultDownloadDirectory);
   settings.scanIntervalSeconds = j.value("scanIntervalSeconds", defaults.scanIntervalSeconds);
+  settings.cycleIntervalSeconds = j.value("cycleIntervalSeconds", defaults.cycleIntervalSeconds); // Added
   settings.defaultIngestionVisibility = j.value("defaultIngestionVisibility", defaults.defaultIngestionVisibility);
 }
 // NOLINTEND

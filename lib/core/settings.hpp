@@ -14,5 +14,6 @@ struct Settings {
   std::string getterCommandTemplate = "noctalia msg wallpaper-get";
   std::string defaultDownloadDirectory;
   std::uint32_t scanIntervalSeconds = 0;
+  std::uint32_t cycleIntervalSeconds = 0; 
   std::string defaultIngestionVisibility = "unclassified";
-};;
+};
