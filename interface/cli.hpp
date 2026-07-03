@@ -5,6 +5,51 @@
 #include <string>
 
 namespace cli {
+  namespace detail {
+
+    inline std::optional<std::string> handleClassify(int argc, char** argv) {
+      if(argc != 4) {
+        std::cerr << "Error: 'classify' requires exactly two arguments: <hash> and <safe|unsafe|unclassified>\n";
+        return std::nullopt;
+      }
+      return std::string("CLASSIFY ") + argv[2] + " " + argv[3];
+    }
+
+    inline std::optional<std::string> handleIngest(const std::string& cmdPrefix, int argc, char** argv) {
+      if(argc != 3) {
+        std::cerr << "Error: '" << cmdPrefix << "' requires exactly one argument: <path>\n";
+        return std::nullopt;
+      }
+
+      std::error_code ec;
+      const std::filesystem::path absPath = std::filesystem::absolute(argv[2], ec);
+      if(ec) {
+        std::cerr << "Error: Failed to resolve path '" << argv[2] << "': " << ec.message() << "\n";
+        return std::nullopt;
+      }
+
+      std::string action = "INGEST_SAFE ";
+      if(cmdPrefix == "ingest_unsafe") {
+        action = "INGEST_UNSAFE ";
+      }
+      return action + absPath.string();
+    }
+
+    inline std::optional<std::string> handleSetMode(int argc, char** argv) {
+      if(argc != 3) {
+        std::cerr << "Error: 'set_mode' requires exactly one argument: <safe|unsafe>\n";
+        return std::nullopt;
+      }
+      std::string arg = argv[2];
+      if(arg != "safe" && arg != "unsafe") {
+        std::cerr << "Error: 'set_mode' argument must be 'safe' or 'unsafe'\n";
+        return std::nullopt;
+      }
+      return std::string("SET_MODE ") + arg;
+    }
+
+  } // namespace detail
+
   struct Parser {
     Parser() = delete;
 
@@ -13,6 +58,7 @@ namespace cli {
                 << "Commands:\n"
                 << "  cycle                 Move to the next wallpaper\n"
                 << "  toggle                Toggle between Safe/Unsafe modes\n"
+                << "  set_mode <mode>       Set mode explicitly (safe/unsafe)\n"
                 << "  ingest_safe <path>    Add a new safe wallpaper\n"
                 << "  ingest_unsafe <path>  Add a new unsafe wallpaper\n"
                 << "  classify <hash> <vis> Change visibility of a wallpaper (safe/unsafe/unclassified)\n"
@@ -31,75 +77,32 @@ namespace cli {
 
       const std::string command = argv[1];
 
-      const bool isCycle = command == "cycle";
-      if(isCycle) {
+      if(command == "cycle") {
         return "CYCLE";
       }
-      const bool isToggle = command == "toggle";
-      if(isToggle) {
+      if(command == "toggle") {
         return "TOGGLE";
       }
-      const bool isStatus = command == "status";
-      if(isStatus) {
+      if(command == "status") {
         return "STATUS";
       }
-      const bool isList = command == "list";
-      if(isList) {
+      if(command == "list") {
         return "LIST";
       }
-      const bool isScan = command == "scan" || command == "force_ingest";
-      if(isScan) {
+      if(command == "scan" || command == "force_ingest") {
         return "SCAN";
       }
-
-      const bool isClassify = command == "classify";
-      if(isClassify) {
-        if(argc != 4) {
-          std::cerr << "Error: 'classify' requires exactly two arguments: <hash> and <safe|unsafe|unclassified>\n";
-          return std::nullopt;
-        }
-        return std::string("CLASSIFY ") + argv[2] + " " + argv[3];
-      }
-
-      const bool isIngestSafe = command == "ingest_safe";
-      if(isIngestSafe) {
-        const bool hasCorrectArgCount = argc == 3;
-        if(!hasCorrectArgCount) {
-          std::cerr << "Error: 'ingest_safe' requires exactly one argument: <path>\n";
-          return std::nullopt;
-        }
-
-        std::error_code ec;
-        const std::filesystem::path absPath = std::filesystem::absolute(argv[2], ec);
-        if(ec) {
-          std::cerr << "Error: Failed to resolve path '" << argv[2] << "': " << ec.message() << "\n";
-          return std::nullopt;
-        }
-
-        return "INGEST_SAFE " + absPath.string();
-      }
-
-      const bool isIngestUnsafe = command == "ingest_unsafe";
-      if(isIngestUnsafe) {
-        const bool hasCorrectArgCount = argc == 3;
-        if(!hasCorrectArgCount) {
-          std::cerr << "Error: 'ingest_unsafe' requires exactly one argument: <path>\n";
-          return std::nullopt;
-        }
-
-        std::error_code ec;
-        const std::filesystem::path absPath = std::filesystem::absolute(argv[2], ec);
-        if(ec) {
-          std::cerr << "Error: Failed to resolve path '" << argv[2] << "': " << ec.message() << "\n";
-          return std::nullopt;
-        }
-
-        return "INGEST_UNSAFE " + absPath.string();
-      }
-
-      const bool isCurrent = command == "current";
-      if(isCurrent) {
+      if(command == "current") {
         return "CURRENT";
+      }
+      if(command == "classify") {
+        return detail::handleClassify(argc, argv);
+      }
+      if(command == "ingest_safe" || command == "ingest_unsafe") {
+        return detail::handleIngest(command, argc, argv);
+      }
+      if(command == "set_mode") {
+        return detail::handleSetMode(argc, argv);
       }
 
       std::cerr << "Error: Unknown command '" << command << "'\n";

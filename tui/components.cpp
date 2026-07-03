@@ -103,6 +103,11 @@ namespace {
       return false;
     }
 
+    if(event == Event::Custom) {
+      IpcClient::syncState(state);
+      return true;
+    }
+
     if(inputFilter->Focused()) {
       if(event == Event::Escape) {
         wallpaperMenu->TakeFocus();
@@ -150,11 +155,12 @@ namespace {
     }
 
     const auto& wallpaper = state.filteredWallpapers[state.selectedIndex];
+    const std::string shortHash = wallpaper.hash.substr(0, 12);
 
     return vbox(
         {text("WALLPAPER DETAIL") | bold,
          separator(),
-         hbox({text("Hash:      ") | bold, text(wallpaper.hash) | color(Color::Cyan)}),
+         hbox({text("Hash:      ") | bold, text(shortHash) | color(Color::Cyan)}),
          hbox({text("File:      ") | bold, text(wallpaper.filename)}),
          hbox({text("Vis:       ") | bold, text(wallpaper.visibility)}),
          hbox({text("Created:   ") | bold, text(wallpaper.createdAt)}),

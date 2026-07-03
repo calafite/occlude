@@ -37,6 +37,7 @@ private:
   [[nodiscard]] std::string handleApply(const CommandMessage& message);
   [[nodiscard]] std::string handleDelete(const CommandMessage& message);
   [[nodiscard]] std::string handleRename(const CommandMessage& message);
+  [[nodiscard]] std::string handleSetMode(const CommandMessage& message);
 
   std::reference_wrapper<Engine<RealFileSystem, SystemCommandRunner>> engine;
   std::reference_wrapper<std::mutex> engineMutex;

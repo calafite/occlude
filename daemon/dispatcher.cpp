@@ -280,50 +280,6 @@ std::string CommandDispatcher::handleApply(const CommandMessage& message) {
   }
 }
 
-void CommandDispatcher::registerHandlers() {
-  handlers["CYCLE"] = [this](const CommandMessage& message) {
-    return handleCycle(message);
-  };
-  handlers["TOGGLE"] = [this](const CommandMessage& message) {
-    return handleToggle(message);
-  };
-  handlers["STATUS"] = [this](const CommandMessage& message) {
-    return handleStatus(message);
-  };
-  handlers["LIST"] = [this](const CommandMessage& message) {
-    return handleList(message);
-  };
-  handlers["CURRENT"] = [this](const CommandMessage& message) {
-    return handleCurrent(message);
-  };
-  handlers["SCAN"] = [this](const CommandMessage& message) {
-    return handleScan(message);
-  };
-  handlers["CLASSIFY"] = [this](const CommandMessage& message) {
-    return handleClassify(message);
-  };
-  handlers["DUMP"] = [this](const CommandMessage& message) {
-    return handleDump(message);
-  };
-  handlers["APPLY"] = [this](const CommandMessage& message) {
-    return handleApply(message);
-  };
-
-  handlers["INGEST_SAFE"] = [this](const CommandMessage& message) {
-    return handleIngest(message, Visibility::Safe);
-  };
-  handlers["INGEST_UNSAFE"] = [this](const CommandMessage& message) {
-    return handleIngest(message, Visibility::Unsafe);
-  };
-  handlers["DELETE"] = [this](const CommandMessage& message) {
-    return handleDelete(message);
-  };
-  handlers["RENAME"] = [this](const CommandMessage& message) {
-    return handleRename(message);
-  };
-}
-
-
 std::string CommandDispatcher::handleDelete(const CommandMessage& message) {
   const bool emptyArgument = message.argument.empty();
   if(emptyArgument) {
@@ -356,4 +312,78 @@ std::string CommandDispatcher::handleRename(const CommandMessage& message) {
   } catch(const std::exception& exception) {
     return std::format("ERR {}", exception.what());
   }
+}
+
+std::string CommandDispatcher::handleSetMode(const CommandMessage& message) {
+  const bool emptyArgument = message.argument.empty();
+  if(emptyArgument) {
+    return "ERR Set mode requires <safe|unsafe>";
+  }
+
+  StateMode targetMode{};
+  const bool isSafe = message.argument == "safe";
+  const bool isUnsafe = message.argument == "unsafe";
+
+  if(isSafe) {
+    targetMode = StateMode::Safe;
+  } else if(isUnsafe) {
+    targetMode = StateMode::Unsafe;
+  } else {
+    return std::format("ERR Unknown mode '{}'", message.argument);
+  }
+
+  std::lock_guard<std::mutex> lock(engineMutex.get());
+  try {
+    engine.get().setMode(targetMode);
+    const std::string modeString = isSafe ? "SAFE" : "UNSAFE";
+    return std::format("OK \033[32m✔\033[0m Switched to {} mode", modeString);
+  } catch(const std::exception& exception) {
+    return std::format("ERR {}", exception.what());
+  }
+}
+
+void CommandDispatcher::registerHandlers() {
+  handlers["CYCLE"] = [this](const CommandMessage& message) {
+    return handleCycle(message);
+  };
+  handlers["TOGGLE"] = [this](const CommandMessage& message) {
+    return handleToggle(message);
+  };
+  handlers["STATUS"] = [this](const CommandMessage& message) {
+    return handleStatus(message);
+  };
+  handlers["LIST"] = [this](const CommandMessage& message) {
+    return handleList(message);
+  };
+  handlers["CURRENT"] = [this](const CommandMessage& message) {
+    return handleCurrent(message);
+  };
+  handlers["SCAN"] = [this](const CommandMessage& message) {
+    return handleScan(message);
+  };
+  handlers["CLASSIFY"] = [this](const CommandMessage& message) {
+    return handleClassify(message);
+  };
+  handlers["DUMP"] = [this](const CommandMessage& message) {
+    return handleDump(message);
+  };
+  handlers["APPLY"] = [this](const CommandMessage& message) {
+    return handleApply(message);
+  };
+  handlers["DELETE"] = [this](const CommandMessage& message) {
+    return handleDelete(message);
+  };
+  handlers["RENAME"] = [this](const CommandMessage& message) {
+    return handleRename(message);
+  };
+  handlers["SET_MODE"] = [this](const CommandMessage& message) {
+    return handleSetMode(message);
+  };
+
+  handlers["INGEST_SAFE"] = [this](const CommandMessage& message) {
+    return handleIngest(message, Visibility::Safe);
+  };
+  handlers["INGEST_UNSAFE"] = [this](const CommandMessage& message) {
+    return handleIngest(message, Visibility::Unsafe);
+  };
 }

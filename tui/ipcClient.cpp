@@ -1,5 +1,4 @@
 #include "ipcClient.hpp"
-
 #include "../lib/ipc.hpp"
 
 #include <algorithm>
@@ -39,6 +38,7 @@ void IpcClient::syncState(AppState& state) {
     state.daemonLogs = stripAnsi(rawDump);
     return;
   }
+
   if(rawDump.starts_with("OK ")) {
     rawDump = rawDump.substr(3);
   }
@@ -57,13 +57,16 @@ void IpcClient::syncState(AppState& state) {
       wp.filename = std::filesystem::path(wp.path).filename().string();
       wp.visibility = item["visibility"].get<std::string>();
       wp.createdAt = item["createdAt"].get<std::string>();
+
       if(item["lastShown"].is_string()) {
         wp.lastShown = item["lastShown"].get<std::string>();
       } else {
         wp.lastShown = "Never";
       }
+
       state.allWallpapers.push_back(wp);
     }
+
     applyFilterAndSort(state);
   } catch(const std::exception& ex) {
     state.daemonLogs = "ERR Exception parsing dump payload: " + std::string(ex.what());
@@ -71,6 +74,11 @@ void IpcClient::syncState(AppState& state) {
 }
 
 void IpcClient::applyFilterAndSort(AppState& state) {
+  std::string activeHash;
+  if(!state.filteredWallpapers.empty() && state.selectedIndex < static_cast<int>(state.filteredWallpapers.size())) {
+    activeHash = state.filteredWallpapers[state.selectedIndex].hash;
+  }
+
   std::string filterLower = state.filterText;
   std::ranges::transform(filterLower, filterLower.begin(), ::tolower);
 
@@ -99,8 +107,21 @@ void IpcClient::applyFilterAndSort(AppState& state) {
     state.menuEntries.push_back(std::format(" {:<8} │ {:<12} │ {}", wp.hash.substr(0, 8), wp.visibility, wp.filename));
   }
 
-  if(state.selectedIndex >= static_cast<int>(state.filteredWallpapers.size())) {
-    state.selectedIndex = std::max(0, static_cast<int>(state.filteredWallpapers.size()) - 1);
+  bool selectionRestored = false;
+  if(!activeHash.empty()) {
+    for(int i = 0; i < static_cast<int>(state.filteredWallpapers.size()); ++i) {
+      if(state.filteredWallpapers[i].hash == activeHash) {
+        state.selectedIndex = i;
+        selectionRestored = true;
+        break;
+      }
+    }
+  }
+
+  if(!selectionRestored) {
+    if(state.selectedIndex >= static_cast<int>(state.filteredWallpapers.size())) {
+      state.selectedIndex = std::max(0, static_cast<int>(state.filteredWallpapers.size()) - 1);
+    }
   }
 }
 

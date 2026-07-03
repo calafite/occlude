@@ -139,6 +139,55 @@ struct Engine {
     cycle();
   }
 
+  void setMode(StateMode mode) {
+    if(manifest.state.stateMode == mode) {
+      return;
+    }
+
+    manifest.state.stateMode = mode;
+    std::optional<std::string> targetHashHex;
+
+    if(mode == StateMode::Safe) {
+      targetHashHex = manifest.state.publicCurrent;
+      logging::info("Engine: Switched to SAFE mode.");
+    } else {
+      targetHashHex = manifest.state.privateCurrent;
+      logging::info("Engine: Switched to UNSAFE mode.");
+    }
+
+    const bool hasTarget = targetHashHex.has_value();
+    if(hasTarget) {
+      try {
+        Hash targetHash(*targetHashHex);
+        auto found = manifest.find(targetHash);
+
+        if(found) {
+          auto foundVisibility = found.value().visibility;
+          const bool isSafeMode = manifest.state.stateMode == StateMode::Safe;
+
+          bool isValid = false;
+          if(isSafeMode) {
+            isValid = foundVisibility == Visibility::Safe;
+          } else {
+            isValid = foundVisibility == Visibility::Safe || foundVisibility == Visibility::Unsafe;
+          }
+
+          if(isValid) {
+            bool success = applyWallpaper(targetHash);
+            if(success) {
+              return;
+            }
+          }
+        }
+      } catch(std::exception const&) {
+        cycle();
+        return;
+      }
+    }
+
+    cycle();
+  }
+
   bool applyWallpaper(Hash const& hash) {
     auto resolvedPath = wallpaperStore.resolve(hash);
 
@@ -194,7 +243,6 @@ struct Engine {
 
     FilePath currentPath = found.value().absPath;
 
-    // Fix: If file is physically missing, purge it.
     if(!fs.get().exists(currentPath)) {
       manifest.deleteWallpaper(hash);
       manifestStore.save(manifest);
@@ -234,7 +282,6 @@ struct Engine {
       throw std::runtime_error("Wallpaper not found in manifest");
     }
 
-    // Fix: Graceful physical deletion
     FilePath path = found.value().absPath;
     if(fs.get().exists(path)) {
       fs.get().remove(path);
