@@ -3,6 +3,7 @@
 #include "utils.hpp"
 
 #include <format>
+#include <nlohmann/json.hpp>
 
 CommandDispatcher::CommandDispatcher(
     Engine<
@@ -208,6 +209,77 @@ std::string CommandDispatcher::handleClassify(const CommandMessage& message) {
   }
 }
 
+std::string CommandDispatcher::handleDump(const CommandMessage& /*message*/) {
+  std::lock_guard<std::mutex> lock(engineMutex.get());
+
+  nlohmann::json root;
+  const bool isSafeMode = engine.get().manifest.state.stateMode == StateMode::Safe;
+  root["state"]["mode"] = isSafeMode ? "Safe" : "Unsafe";
+  root["state"]["publicCurrent"] = engine.get().manifest.state.publicCurrent.value_or("");
+  root["state"]["privateCurrent"] = engine.get().manifest.state.privateCurrent.value_or("");
+
+  auto wallpapersArray = nlohmann::json::array();
+  const auto allWallpapers = engine.get().manifest.all();
+  for(const auto& wallpaperRef : allWallpapers) {
+    const auto& wallpaper = wallpaperRef.get();
+
+    std::string hashHex;
+    hashHex.reserve(HASH_SIZE * 2);
+    for(std::byte byte : wallpaper.hash.value) {
+      hashHex += std::format("{:02x}", static_cast<unsigned char>(byte));
+    }
+
+    std::string visibilityString;
+    switch(wallpaper.visibility) {
+    case Visibility::Safe:
+      visibilityString = "Safe";
+      break;
+    case Visibility::Unsafe:
+      visibilityString = "Unsafe";
+      break;
+    case Visibility::Unclassified:
+      visibilityString = "Unclassified";
+      break;
+    }
+
+    nlohmann::json wallpaperObj;
+    wallpaperObj["hash"] = hashHex;
+    wallpaperObj["path"] = wallpaper.absPath.string();
+    wallpaperObj["visibility"] = visibilityString;
+    wallpaperObj["createdAt"] = std::format("{:%Y-%m-%d %H:%M:%S}", wallpaper.createdAt);
+
+    if(wallpaper.lastShown.has_value()) {
+      wallpaperObj["lastShown"] = std::format("{:%Y-%m-%d %H:%M:%S}", *wallpaper.lastShown);
+    } else {
+      wallpaperObj["lastShown"] = nullptr;
+    }
+
+    wallpapersArray.push_back(wallpaperObj);
+  }
+
+  root["wallpapers"] = wallpapersArray;
+  return "OK " + root.dump();
+}
+
+std::string CommandDispatcher::handleApply(const CommandMessage& message) {
+  const bool emptyArgument = message.argument.empty();
+  if(emptyArgument) {
+    return "ERR Apply requires a <hash>";
+  }
+
+  std::lock_guard<std::mutex> lock(engineMutex.get());
+  try {
+    const Hash hash(message.argument);
+    const bool success = engine.get().applyWallpaper(hash);
+    if(success) {
+      return "OK \033[32m✔\033[0m Wallpaper applied successfully";
+    }
+    return "ERR Failed to apply wallpaper";
+  } catch(const std::exception& exception) {
+    return std::format("ERR {}", exception.what());
+  }
+}
+
 void CommandDispatcher::registerHandlers() {
   handlers["CYCLE"] = [this](const CommandMessage& message) {
     return handleCycle(message);
@@ -230,6 +302,12 @@ void CommandDispatcher::registerHandlers() {
   handlers["CLASSIFY"] = [this](const CommandMessage& message) {
     return handleClassify(message);
   };
+  handlers["DUMP"] = [this](const CommandMessage& message) {
+    return handleDump(message);
+  };
+  handlers["APPLY"] = [this](const CommandMessage& message) {
+    return handleApply(message);
+  };
 
   handlers["INGEST_SAFE"] = [this](const CommandMessage& message) {
     return handleIngest(message, Visibility::Safe);
@@ -237,4 +315,45 @@ void CommandDispatcher::registerHandlers() {
   handlers["INGEST_UNSAFE"] = [this](const CommandMessage& message) {
     return handleIngest(message, Visibility::Unsafe);
   };
+  handlers["DELETE"] = [this](const CommandMessage& message) {
+    return handleDelete(message);
+  };
+  handlers["RENAME"] = [this](const CommandMessage& message) {
+    return handleRename(message);
+  };
+}
+
+
+std::string CommandDispatcher::handleDelete(const CommandMessage& message) {
+  const bool emptyArgument = message.argument.empty();
+  if(emptyArgument) {
+    return "ERR Delete requires a <hash>";
+  }
+  std::lock_guard<std::mutex> lock(engineMutex.get());
+  try {
+    const Hash hash(message.argument);
+    engine.get().deleteWallpaper(hash);
+    return "OK \033[32m✔\033[0m Wallpaper deleted successfully";
+  } catch(const std::exception& exception) {
+    return std::format("ERR {}", exception.what());
+  }
+}
+
+std::string CommandDispatcher::handleRename(const CommandMessage& message) {
+  const std::size_t spaceIndex = message.argument.find(' ');
+  if(spaceIndex == std::string::npos) {
+    return "ERR Rename requires <hash> <new_name>";
+  }
+
+  const std::string hashHex = message.argument.substr(0, spaceIndex);
+  const std::string newName = message.argument.substr(spaceIndex + 1);
+
+  std::lock_guard<std::mutex> lock(engineMutex.get());
+  try {
+    const Hash hash(hashHex);
+    engine.get().renameWallpaper(hash, newName);
+    return "OK \033[32m✔\033[0m Wallpaper renamed successfully";
+  } catch(const std::exception& exception) {
+    return std::format("ERR {}", exception.what());
+  }
 }

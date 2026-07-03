@@ -12,7 +12,12 @@ FetchContent_Declare(
     json
     URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
 )
-FetchContent_MakeAvailable(json)
+FetchContent_Declare(
+    ftxui
+    GIT_REPOSITORY https://github.com/ArthurSonzogni/FTXUI
+    GIT_TAG v5.0.0
+)
+FetchContent_MakeAvailable(json ftxui)
 
 add_library(occlude_lib STATIC
     lib/fs.cpp
@@ -52,4 +57,21 @@ target_include_directories(occlude PRIVATE
 
 target_link_libraries(occlude PRIVATE
     occlude_lib
+)
+
+add_executable(occlude-tui
+    tui/main.cpp
+    tui/ipcClient.cpp
+    tui/components.cpp
+)
+
+target_include_directories(occlude-tui PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/tui
+)
+
+target_link_libraries(occlude-tui PRIVATE
+    occlude_lib
+    ftxui::screen
+    ftxui::dom
+    ftxui::component
 )
