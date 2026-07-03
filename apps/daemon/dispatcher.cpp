@@ -46,7 +46,7 @@ std::string CommandDispatcher::handleStatus(const CommandMessage& /*message*/) {
   std::lock_guard<std::mutex> lock(engineMutex.get());
   const bool isSafeMode = engine.get().manifest.state.stateMode == StateMode::Safe;
   const std::string modeString = isSafeMode ? "\033[32mSAFE\033[0m" : "\033[31mUNSAFE\033[0m";
-  return "OK \033[34mℹ\033[0m Current Mode: " + modeString;
+  return "OK \033[34mℹ\033[0m  Current Mode: " + modeString;
 }
 
 std::string CommandDispatcher::handleList(const CommandMessage& /*message*/) {
@@ -81,7 +81,8 @@ std::string CommandDispatcher::handleList(const CommandMessage& /*message*/) {
       break;
     }
 
-    const std::string dateString = std::format("{:%Y-%m-%d %H:%M:%S}", wallpaper.createdAt);
+    const auto createdSecs = std::chrono::floor<std::chrono::seconds>(wallpaper.createdAt);
+    const std::string dateString = std::format("{:%Y-%m-%d %H:%M:%S}", createdSecs);
     const std::string shortHash = hashHex.substr(0, 8);
 
     output += std::format(
@@ -119,7 +120,7 @@ std::string CommandDispatcher::handleIngest(const CommandMessage& message, Visib
 }
 
 std::string CommandDispatcher::handleCurrent(const CommandMessage& /*message*/) {
-  const auto currentResult = engine.get().runner.get().runYieldOutput(settings.get().getterCommandTemplate);
+  const auto currentResult = SystemCommandRunner::runYieldOutput(settings.get().getterCommandTemplate);
   const bool hasResult = currentResult.has_value();
   if(hasResult) {
     return "OK " + *currentResult;
@@ -185,15 +186,17 @@ std::string CommandDispatcher::handleDump(const CommandMessage& /*message*/) {
   const auto allWallpapers = engine.get().manifest.all();
   for(const auto& wallpaperRef : allWallpapers) {
     const auto& wallpaper = wallpaperRef.get();
-
+    
+    const auto createdSecs = std::chrono::floor<std::chrono::seconds>(wallpaper.createdAt);
     nlohmann::json wallpaperObj;
     wallpaperObj["hash"] = wallpaper.hash.toString();
     wallpaperObj["path"] = wallpaper.absPath.string();
     wallpaperObj["visibility"] = toString(wallpaper.visibility);
-    wallpaperObj["createdAt"] = std::format("{:%Y-%m-%d %H:%M:%S}", wallpaper.createdAt);
+    wallpaperObj["createdAt"] = std::format("{:%Y-%m-%d %H:%M:%S}", createdSecs);
 
     if(wallpaper.lastShown.has_value()) {
-      wallpaperObj["lastShown"] = std::format("{:%Y-%m-%d %H:%M:%S}", *wallpaper.lastShown);
+      const auto shownSeconds = std::chrono::floor<std::chrono::seconds>(*wallpaper.lastShown); 
+      wallpaperObj["lastShown"] = std::format("{:%Y-%m-%d %H:%M:%S}", shownSeconds);
     } else {
       wallpaperObj["lastShown"] = nullptr;
     }
