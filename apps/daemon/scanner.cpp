@@ -86,6 +86,12 @@ void WallpaperScanner::scanNow() {
           continue;
         }
 
+        const auto& imagePath = entry.path();
+        bool isSupported = isSupportedImage(imagePath);
+        if(!isSupported) {
+          continue;
+        }
+
         processFile(entry);
       }
     }

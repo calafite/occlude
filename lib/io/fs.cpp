@@ -1,8 +1,10 @@
 #include "../io/fs.hpp"
-#include "../utils/common.hpp"
+
 #include "../3p/picosha2.h"
+#include "../utils/common.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -11,11 +13,68 @@
 #include <stdexcept>
 #include <unistd.h>
 
+
 namespace {
+  constexpr std::array<std::string_view, 5> validExtensions = {".jpg", ".jpeg", ".png", ".webp", ".gif"};
+
   inline std::byte castByte(char character) {
     return static_cast<std::byte>(character);
   }
+
+  inline char lower(unsigned char character) {
+    return static_cast<char>(std::tolower(character));
+  }
 } // namespace
+
+bool isSupportedImage(const FilePath& path) {
+  std::string ext = path.extension().string();
+  std::ranges::transform(ext, ext.begin(), lower);
+
+  if(!std::ranges::contains(validExtensions, ext)) {
+    return false;
+  }
+
+  std::ifstream file(path, std::ios::binary);
+  bool fileOpen = file.is_open();
+  if(!fileOpen) {
+    return false;
+  }
+
+  std::array<unsigned char, 12> header{};
+
+  // NOLINTBEGIN
+  const auto headerData = reinterpret_cast<char*>(header.data());
+  const auto headerSize = header.size();
+  file.read(headerData, headerSize);
+  // NOLINTEND
+  
+  const std::streamsize bytesRead = file.gcount();
+  if(bytesRead < 4) {
+    return false;
+  }
+
+  if(header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47) {
+    return ext == ".png";
+  }
+
+  if(header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF) {
+    return ext == ".jpg" || ext == ".jpeg";
+  }
+
+  if(header[0] == 0x47 && header[1] == 0x49 && header[2] == 0x46 && header[3] == 0x38) {
+    return ext == ".gif";
+  }
+
+  if(bytesRead >= 12) {
+    const bool isRiff = (header[0] == 0x52 && header[1] == 0x49 && header[2] == 0x46 && header[3] == 0x46);
+    const bool isWebp = (header[8] == 0x57 && header[9] == 0x45 && header[10] == 0x42 && header[11] == 0x50);
+    if(isRiff && isWebp) {
+      return ext == ".webp";
+    }
+  }
+
+  return false;
+}
 
 // RFS
 
@@ -30,7 +89,7 @@ std::vector<std::byte> RealFileSystem::read(FilePath const& path) {
   }
   const auto istreambufF = std::istreambuf_iterator<char>(in);
   const auto istreambufL = std::istreambuf_iterator<char>();
-  std::vector<char> raw((istreambufF), istreambufL);
+  std::vector<char> raw(istreambufF, istreambufL);
   std::vector<std::byte> bytes(raw.size());
   std::ranges::transform(raw, bytes.begin(), castByte);
   return bytes;
@@ -92,7 +151,7 @@ void RealFileSystem::move(MoveOperation& moveOperation) {
   if(isCrossDevice) {
     errorCode.clear();
     std::filesystem::copy(from, to, std::filesystem::copy_options::overwrite_existing, errorCode);
-    
+
     const bool copySucceeded = !errorCode;
     if(copySucceeded) {
       std::filesystem::remove(from, errorCode);
@@ -202,4 +261,3 @@ void VirtualFileSystem::unmount(FilePath const& root) {
     return std::ranges::starts_with(entry.first, root);
   });
 }
-

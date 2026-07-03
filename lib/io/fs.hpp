@@ -10,6 +10,8 @@
 #include <unordered_map>
 #include <vector>
 
+[[nodiscard]] bool isSupportedImage(const FilePath& path);
+
 [[nodiscard]] inline FilePath resolveTilde(const FilePath& path) {
   FilePath resolved = path;
   const std::string pathStr = path.string();

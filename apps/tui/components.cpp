@@ -1,17 +1,61 @@
 #include "components.hpp"
+
 #include "ipcClient.hpp"
 #include "modals.hpp"
 
+#include <fcntl.h>
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/event.hpp>
 #include <ftxui/dom/elements.hpp>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <vector>
 
 using namespace ftxui;
 
 // NOLINTBEGIN(readability-identifier-naming)
-
+// NOLINTBEGIN
 namespace {
+  void launchExternalPreview(const std::string& path) {
+    pid_t pid = fork();
+
+    if(pid < 0) {
+      return;
+    }
+
+    if(pid == 0) {
+      pid_t grandchild = fork();
+      if(grandchild < 0) {
+        _exit(1);
+      }
+      if(grandchild > 0) {
+        _exit(0);
+      }
+
+      int devNull = open("/dev/null", O_WRONLY);
+      if(devNull >= 0) {
+        dup2(devNull, STDOUT_FILENO);
+        dup2(devNull, STDERR_FILENO);
+        close(devNull);
+      }
+
+#if __APPLE__
+      const char* launcher = "open";
+#else
+      const char* launcher = "xdg-open";
+#endif
+
+      auto* launcherV = const_cast<char*>(launcher);
+      auto* cPath = const_cast<char*>(path.c_str());
+      char* args[] = {launcherV, cPath, nullptr};
+      execvp(launcher, args);
+      _exit(127);
+    }
+
+    int status = 0;
+    waitpid(pid, &status, 0);
+  }
+  // NOLINTEND
 
   std::string GetSortModeName(int index) {
     if(index == 0) {
@@ -54,6 +98,12 @@ namespace {
     }
 
     const auto& wallpaper = state.filteredWallpapers[state.selectedIndex];
+
+    if(event == Event::Character('p') || event == Event::Character('P')) {
+      launchExternalPreview(wallpaper.path);
+      state.daemonLogs = "Previewing file: " + wallpaper.filename;
+      return true;
+    }
 
     if(event == Event::Character('a') || event == Event::Character('A')) {
       if(state.systemMode == "Safe" && wallpaper.visibility != "Safe") {
@@ -133,6 +183,7 @@ namespace {
                 text(" [Esc] Unfocus ") | dim,
                 text(" [j/k] Nav ") | dim,
                 text(" [a] Apply ") | dim | bold,
+                text(" [p] Preview ") | dim | bold,
                 text(" [v] Classify ") | dim,
                 text(" [r] Rename ") | dim,
                 text(" [d] Delete ") | dim,
