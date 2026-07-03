@@ -100,7 +100,7 @@ On initial startup, `occluded` generates a default configuration file under `~/.
 
 1.  **Strict State Confinement**: When switching to `Safe` mode, if the current active wallpaper is evaluated as `Unsafe`, `occlude` instantly swaps it to the next available `Safe` wallpaper.
 2.  **Quarantine**: Newly ingested wallpapers placed in `unclassifiedRoot` are quarantined. They cannot be set, cycled, or viewed until classified as `Safe` or `Unsafe`.
-3.  **Cross-Device Atomic Operations**: Moving files between these directories falls back gracefully to copy-then-delete in the event of cross-partition or cross-filesystem links (`EXDEV`), ensuring database-to-disk consistency [1].
+3.  **Cross-Device Atomic Operations**: Moving files between these directories falls back gracefully to copy-then-delete in the event of cross-partition or cross-filesystem links (`EXDEV`), ensuring database-to-disk consistency.
 
 ---
 
