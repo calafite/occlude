@@ -20,7 +20,7 @@ WallpaperScanner::WallpaperScanner(
       settings(settingsRef) {}
 
 void WallpaperScanner::start() {
-  const uint32_t interval = settings.get().scanIntervalMinutes;
+  const uint32_t interval = settings.get().scanIntervalSeconds;
   const std::string& directoryPath = settings.get().defaultDownloadDirectory;
 
   const bool hasNoDirectory = directoryPath.empty();
@@ -35,10 +35,10 @@ void WallpaperScanner::start() {
 }
 
 void WallpaperScanner::run(const std::stop_token& stopToken) {
-  const uint32_t interval = settings.get().scanIntervalMinutes;
+  const uint32_t interval = settings.get().scanIntervalSeconds;
   const std::string& directoryPath = settings.get().defaultDownloadDirectory;
 
-  logging::info("Scanner thread started for directory: {} (interval: {}m)", directoryPath, interval);
+  logging::info("Scanner thread started for directory: {} (interval: {}s)", directoryPath, interval);
 
   std::condition_variable_any cv;
   std::mutex cvMtx;
@@ -47,7 +47,7 @@ void WallpaperScanner::run(const std::stop_token& stopToken) {
     scanNow();
 
     std::unique_lock<std::mutex> lock(cvMtx);
-    cv.wait_for(lock, stopToken, std::chrono::minutes(interval), [&stopToken] {
+    cv.wait_for(lock, stopToken, std::chrono::seconds(interval), [&stopToken] {
       return stopToken.stop_requested();
     });
   }

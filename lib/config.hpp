@@ -21,7 +21,7 @@
       .setterCommandTemplate = "noctalia msg wallpaper-set {path}",
       .getterCommandTemplate = "noctalia msg wallpaper-get",
       .defaultDownloadDirectory = "",
-      .scanIntervalMinutes = 0,
+      .scanIntervalSeconds = 30,
       .defaultIngestionVisibility = "unclassified"
   };
 }
@@ -36,7 +36,7 @@ inline void to_json(nlohmann::json& j, Settings const& settings) {
       {"setterCommandTemplate", settings.setterCommandTemplate},
       {"getterCommandTemplate", settings.getterCommandTemplate},
       {"defaultDownloadDirectory", settings.defaultDownloadDirectory},
-      {"scanIntervalMinutes", settings.scanIntervalMinutes},
+      {"scanIntervalSeconds", settings.scanIntervalSeconds},
       {"defaultIngestionVisibility", settings.defaultIngestionVisibility}
   };
 }
@@ -50,7 +50,7 @@ inline void from_json(nlohmann::json const& j, Settings& settings) {
   settings.setterCommandTemplate = j.value("setterCommandTemplate", defaults.setterCommandTemplate);
   settings.getterCommandTemplate = j.value("getterCommandTemplate", defaults.getterCommandTemplate);
   settings.defaultDownloadDirectory = j.value("defaultDownloadDirectory", defaults.defaultDownloadDirectory);
-  settings.scanIntervalMinutes = j.value("scanIntervalMinutes", defaults.scanIntervalMinutes);
+  settings.scanIntervalSeconds = j.value("scanIntervalSeconds", defaults.scanIntervalSeconds);
   settings.defaultIngestionVisibility = j.value("defaultIngestionVisibility", defaults.defaultIngestionVisibility);
 }
 // NOLINTEND
