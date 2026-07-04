@@ -142,18 +142,17 @@ c238fa01 │ Unclassified │ 2026-07-03 20:25:30 │ /home/user/.config/occlude
 Current Mode: SAFE
 ```
 
----
-
 ## Terminal User Interface (TUI)
 
-The `occlude-tui` program provides a mouse-supported interactive screen to manage, filter, and modify wallpaper classifications.
+The `occlude-tui` program provides a mouse-supported interactive screen to manage, filter, and modify wallpaper classifications. The interface includes a streamlined help bar at the bottom containing essential hotkeys to keep the workspace clean and uncluttered.
 
-<img width="1917" height="1078" alt="image" src="https://github.com/user-attachments/assets/f1106fb8-c0f3-4f97-a2ed-5779def2e0b5" />
+<img width="1918" height="1078" alt="image" src="https://github.com/user-attachments/assets/0bd425a1-3c72-4864-89e3-f8234594ff54" />
 
 ### TUI Keybindings
 
+*   `?` : Toggle the detailed **Keybinds & Help** overlay.
 *   `/` : Focus search input field.
-*   `Escape` : Unfocus search input field (returns control to list navigation).
+*   `Escape` : Unfocus search input field (returns control to list navigation) or close any active modals.
 *   `j` / `k` (or `Up` / `Down` arrows) : Navigate wallpaper list.
 *   `Space` : Toggle multi-selection for the currently highlighted wallpaper.
 *   `*` : Toggle multi-selection for **all** wallpapers currently visible in the filtered list.
@@ -168,8 +167,6 @@ The `occlude-tui` program provides a mouse-supported interactive screen to manag
 *   `c` : Force-cycle the wallpaper.
 *   `t` : Toggle visibility modes modal (`Safe` <-> `Unsafe`).
 *   `q` : Quit `occlude-tui`.
-
----
 
 ## State & Manifest File Format
 
