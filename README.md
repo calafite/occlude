@@ -148,7 +148,7 @@ Current Mode: SAFE
 
 The `occlude-tui` program provides a mouse-supported interactive screen to manage, filter, and modify wallpaper classifications.
 
-<img width="1916" height="1076" alt="image" src="https://github.com/user-attachments/assets/ede2ac3f-84fd-4ddb-a914-154fb64b6bd7" />
+<img width="1917" height="1078" alt="image" src="https://github.com/user-attachments/assets/f1106fb8-c0f3-4f97-a2ed-5779def2e0b5" />
 
 ### TUI Keybindings
 
