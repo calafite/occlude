@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
+cmake_policy(SET CMP0135 NEW) 
 project(occlude LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 26)
@@ -78,3 +79,4 @@ target_link_libraries(occlude-tui PRIVATE
     ftxui::dom
     ftxui::component
 )
+
