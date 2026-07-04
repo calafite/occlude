@@ -58,6 +58,7 @@ namespace IPC {
     Connection(Connection&& other) noexcept : fileDescriptor(other.fileDescriptor) {
       other.fileDescriptor = -1;
     }
+
     Connection& operator=(Connection&& other) noexcept {
       const bool isSelfAssignment = this == &other;
       if(!isSelfAssignment) {
@@ -104,12 +105,12 @@ namespace IPC {
         ssize_t bytes = ::read(fileDescriptor, chunk.data(), chunk.size());
         if(bytes < 0) {
           if(errno == EINTR) {
-            continue; 
+            continue;
           }
           return std::unexpected(Error::Read);
         }
         if(bytes == 0) {
-          break; 
+          break;
         }
 
         const auto* start = chunk.data();
