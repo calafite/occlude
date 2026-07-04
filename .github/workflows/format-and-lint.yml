@@ -1,0 +1,44 @@
+name: Format and Lint
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+permissions:
+  contents: write 
+
+jobs:
+  format-and-lint:
+    name: Auto Format & Lint
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Install Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build clang-format-18 clang-tidy-18
+
+      - name: Generate Compilation Database
+        run: |
+          cmake -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Apply Formatting (clang-format)
+        run: |
+          find apps lib -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) | xargs clang-format-18 -i
+
+      - name: Apply Linting Fixes (clang-tidy)
+        run: |
+          find apps lib -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) | xargs clang-tidy-18 --fix --quiet -p build || true
+
+      - name: Commit and Push Changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto format and lint fixes"
+          file_pattern: 'apps/* lib/*'
