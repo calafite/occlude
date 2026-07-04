@@ -2,8 +2,10 @@
 
 #include "../../lib/io/fs.hpp"
 
+#include <exception>
 #include <format>
 #include <nlohmann/json.hpp>
+#include <stdexcept>
 
 CommandDispatcher::CommandDispatcher(
     Engine<
@@ -182,21 +184,52 @@ std::string CommandDispatcher::handleDump(const CommandMessage& /*message*/) {
   root["state"]["publicCurrent"] = engine.get().manifest.state.publicCurrent.value_or("");
   root["state"]["privateCurrent"] = engine.get().manifest.state.privateCurrent.value_or("");
 
+  std::string publicCurrentFilename;
+  std::string privateCurrentFilename;
+
+  if(engine.get().manifest.state.publicCurrent) {
+    try {
+      Hash hash(*engine.get().manifest.state.publicCurrent);
+      auto found = engine.get().manifest.find(hash);
+      if(found) {
+        publicCurrentFilename = found->absPath.filename().string();
+      }
+    } catch(const std::exception& exception) {
+      logging::error("Dump: Failed to resolve public current filename: {}", exception.what());
+    }
+  }
+
+  if(engine.get().manifest.state.privateCurrent) {
+    try {
+      Hash hash(*engine.get().manifest.state.privateCurrent);
+      auto found = engine.get().manifest.find(hash);
+      if(found) {
+        privateCurrentFilename = found->absPath.filename().string();
+      }
+    } catch(const std::exception& exception) {
+      logging::error("Dump: Failde to resolve private current filename: {}", exception.what());
+    }
+  }
+
+  root["state"]["publicCurrentFilename"] = publicCurrentFilename;
+  root["state"]["privateCurrentFilename"] = privateCurrentFilename;
+
   auto wallpapersArray = nlohmann::json::array();
   const auto allWallpapers = engine.get().manifest.all();
   for(const auto& wallpaperRef : allWallpapers) {
     const auto& wallpaper = wallpaperRef.get();
-    
-    const auto createdSecs = std::chrono::floor<std::chrono::seconds>(wallpaper.createdAt);
+
     nlohmann::json wallpaperObj;
     wallpaperObj["hash"] = wallpaper.hash.toString();
     wallpaperObj["path"] = wallpaper.absPath.string();
     wallpaperObj["visibility"] = toString(wallpaper.visibility);
+
+    const auto createdSecs = std::chrono::floor<std::chrono::seconds>(wallpaper.createdAt);
     wallpaperObj["createdAt"] = std::format("{:%Y-%m-%d %H:%M:%S}", createdSecs);
 
     if(wallpaper.lastShown.has_value()) {
-      const auto shownSeconds = std::chrono::floor<std::chrono::seconds>(*wallpaper.lastShown); 
-      wallpaperObj["lastShown"] = std::format("{:%Y-%m-%d %H:%M:%S}", shownSeconds);
+      const auto shownSecs = std::chrono::floor<std::chrono::seconds>(*wallpaper.lastShown);
+      wallpaperObj["lastShown"] = std::format("{:%Y-%m-%d %H:%M:%S}", shownSecs);
     } else {
       wallpaperObj["lastShown"] = nullptr;
     }

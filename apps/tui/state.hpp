@@ -19,6 +19,8 @@ struct AppState {
   std::string systemMode = "Safe";
   std::string publicCurrent;
   std::string privateCurrent;
+  std::string publicCurrentFilename;
+  std::string privateCurrentFilename;
   std::string daemonLogs = "Started TUI. Connected to socket.";
   std::vector<WallpaperItem> allWallpapers;
   std::vector<WallpaperItem> filteredWallpapers;

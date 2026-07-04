@@ -292,9 +292,28 @@ namespace {
       modeColor = Color::Green;
     }
 
+    bool isSafe = state.systemMode == "Safe";
+    std::string currentFilename;
+    if(isSafe) {
+      currentFilename = state.publicCurrentFilename;
+    } else {
+      currentFilename = state.privateCurrentFilename;
+    }
+
+    if(currentFilename.empty()) {
+      currentFilename = "None";
+    }
+
+    constexpr int maxLen = 24;
+    if(currentFilename.size() > maxLen) {
+      currentFilename = std::format("{}{}", currentFilename.substr(0, maxLen - 3), "...");
+    }
+    
     auto header = hbox(
         {text("OCCLUDE TUI") | bold | color(Color::Blue),
          filler(),
+         text(" CURRENT: " + currentFilename + " ") | bold | bgcolor(Color::Blue) | color(Color::Black),
+         text(" "),
          text(" MODE: " + state.systemMode + " ") | bold | bgcolor(modeColor) | color(Color::Black)}
     );
 

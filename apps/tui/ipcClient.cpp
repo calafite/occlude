@@ -49,6 +49,8 @@ void IpcClient::syncState(AppState& state) {
     state.systemMode = json["state"]["mode"].get<std::string>();
     state.publicCurrent = json["state"]["publicCurrent"].get<std::string>();
     state.privateCurrent = json["state"]["privateCurrent"].get<std::string>();
+    state.publicCurrentFilename = json["state"].value("publicCurrentFilename", "");
+    state.privateCurrentFilename = json["state"].value("privateCurrentFilename", "");
 
     state.allWallpapers.clear();
     for(const auto& item : json["wallpapers"]) {
