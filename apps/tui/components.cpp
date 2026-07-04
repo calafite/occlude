@@ -41,11 +41,11 @@ namespace {
         close(devNull);
       }
 
-      #if __APPLE__
+#if __APPLE__
       const char* launcher = "open";
-      #else
+#else
       const char* launcher = "xdg-open";
-      #endif
+#endif
 
       auto* launcherV = const_cast<char*>(launcher);
       auto* cPath = const_cast<char*>(path.c_str());
@@ -199,11 +199,21 @@ namespace {
     return false;
   }
 
+  // NOLINTBEGIN(bugprone-easily-swappable-parameters)
   bool HandleMainLayerKeys(
-      AppState& state, const Event& event, const Component& inputFilter, const Component& wallpaperMenu,
-      const std::function<void()>& onQuit
+      AppState& state,                    //
+      const Event& event,                 //
+      const Component& inputFilter,       //
+      const Component& wallpaperMenu,     //
+      const std::function<void()>& onQuit //
   ) {
-    if(state.showRenameModal || state.showDeleteModal || state.showToggleModal || state.showClassifyModal) {
+    if(
+        state.showRenameModal      //
+        || state.showDeleteModal   //
+        || state.showToggleModal   //
+        || state.showClassifyModal //
+        || state.showHelpModal     //
+    ) {
       return false;
     }
 
@@ -225,28 +235,26 @@ namespace {
       return true;
     }
 
+    if(event == Event::Character('?')) {
+      state.showHelpModal = true;
+      return true;
+    }
+
     if(HandleGlobalDaemonKeys(state, event, onQuit)) {
       return true;
     }
 
     return HandleWallpaperActionKeys(state, event);
   }
+  // NOLINTEND(bugprone-easily-swappable-parameters)
 
   Element RenderHelpBar() {
     return hbox(
                {text(" [/] Search ") | dim | bold,
-                text(" [Esc] Unfocus ") | dim,
-                text(" [Space/*] Select ") | dim | bold,
+                text(" [?] Help ") | dim | bold,
+                text(" [Space] Select ") | dim,
                 text(" [j/k] Nav ") | dim,
-                text(" [a] Apply ") | dim | bold,
-                text(" [p] Preview ") | dim | bold,
-                text(" [v] Classify ") | dim,
-                text(" [r] Rename ") | dim,
-                text(" [d] Delete ") | dim,
-                text(" [S] Sort Mode ") | dim,
-                text(" [s] Scan ") | dim,
-                text(" [c] Cycle ") | dim,
-                text(" [t] Toggle ") | dim,
+                text(" [a] Apply ") | dim,
                 text(" [q] Quit ") | dim}
            ) |
         center;
@@ -308,7 +316,7 @@ namespace {
     if(currentFilename.size() > maxLen) {
       currentFilename = std::format("{}{}", currentFilename.substr(0, maxLen - 3), "...");
     }
-    
+
     auto header = hbox(
         {text("OCCLUDE TUI") | bold | color(Color::Blue),
          filler(),
@@ -372,6 +380,41 @@ namespace {
         : std::format("Bulk Classify {} Wallpapers", state.selectedHashes.size());
     return vbox({text(title) | bold | center, separator(), classifyModal->Render() | center}) | border |
         bgcolor(Color::Black) | center;
+  }
+
+  Element RenderHelpModalUI(const Component& helpModal) {
+    return vbox(
+               {text(" KEYBINDS & HELP ") | bold | center,
+                separator(),
+                vbox(
+                    {text(""),
+                     text(" Navigation & UI") | bold | color(Color::Cyan),
+                     text("   [/]          Focus Search"),
+                     text("   [Escape]     Unfocus Search / Close Modals"),
+                     text("   [j/k, ↑/↓]   Navigate list"),
+                     text("   [S]          Cycle Sort Mode (Name/Date/Visibility)"),
+                     text("   [?]          Toggle this Help Screen"),
+                     text("   [q]          Quit"),
+                     text(""),
+                     text(" Selection & Actions") | bold | color(Color::Cyan),
+                     text("   [Space]      Toggle single selection"),
+                     text("   [*]          Toggle all in filtered list"),
+                     text("   [a]          Apply selected/highlighted wallpaper"),
+                     text("   [p]          Open image in external viewer"),
+                     text("   [v]          Classify (Safe/Unsafe/Unclassified)"),
+                     text("   [r]          Rename highlighted wallpaper"),
+                     text("   [d]          Delete wallpaper from disk & DB"),
+                     text(""),
+                     text(" Daemon Commands") | bold | color(Color::Cyan),
+                     text("   [s]          Force daemon to scan downloads"),
+                     text("   [c]          Cycle active wallpaper"),
+                     text("   [t]          Toggle system Mode (Safe <-> Unsafe)"),
+                     text("")}
+                ),
+                separator(),
+                helpModal->Render() | center}
+           ) |
+        border | bgcolor(Color::Black) | center;
   }
 
   struct FilterEventHandler {
@@ -440,6 +483,13 @@ namespace {
     }
   };
 
+  struct HelpRendererImpl {
+    Component helpModal;
+    Element operator()() const {
+      return RenderHelpModalUI(helpModal);
+    }
+  };
+
 } // namespace
 
 Component CreateMainUI(AppState& state, const std::function<void()>& onQuit) {
@@ -483,10 +533,15 @@ Component CreateMainUI(AppState& state, const std::function<void()>& onQuit) {
   ClassifyRendererImpl classifyImpl{.state = std::ref(state), .classifyModal = classifyModal};
   auto classifyRenderer = Renderer(classifyModal, classifyImpl);
 
+  auto helpModal = CreateHelpModal(state, wallpaperMenu);
+  HelpRendererImpl helpImpl{.helpModal = helpModal};
+  auto helpRenderer = Renderer(helpModal, helpImpl);
+
   auto ui = Modal(mainLayoutRenderer, renameRenderer, &state.showRenameModal);
   ui = Modal(ui, deleteRenderer, &state.showDeleteModal);
   ui = Modal(ui, toggleRenderer, &state.showToggleModal);
   ui = Modal(ui, classifyRenderer, &state.showClassifyModal);
+  ui = Modal(ui, helpRenderer, &state.showHelpModal);
 
   return ui;
 }

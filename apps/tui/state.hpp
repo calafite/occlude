@@ -36,6 +36,7 @@ struct AppState {
   bool showDeleteModal = false;
   bool showToggleModal = false;
   bool showClassifyModal = false;
+  bool showHelpModal = false;
   int classifyIndex = 0;
   std::vector<std::string> classifyEntries = {"Safe", "Unsafe", "Unclassified"};
 };

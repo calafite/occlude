@@ -146,4 +146,20 @@ ftxui::Component CreateClassifyModal(AppState& state, ftxui::Component wallpaper
     return false;
   });
 }
+
+ftxui::Component CreateHelpModal(AppState& state, ftxui::Component wallpaperMenu) {
+  auto btnClose = Button("Close", [&state, wallpaperMenu]() {
+    state.showHelpModal = false;
+    wallpaperMenu->TakeFocus();
+  });
+
+  return CatchEvent(std::move(btnClose), [&state, wallpaperMenu = std::move(wallpaperMenu)](const Event& event) {
+    if(event == Event::Escape || event == Event::Character('?')) {
+      state.showHelpModal = false;
+      wallpaperMenu->TakeFocus();
+      return true;
+    }
+    return false;
+  });
+}
 // NOLINTEND(readability-identifier-naming)

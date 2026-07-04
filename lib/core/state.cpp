@@ -1,7 +1,8 @@
 #include "../core/state.hpp"
+
+#include "../core/wallpapers.hpp"
 #include "../utils/common.hpp"
 #include "../utils/hash.hpp"
-#include "../core/wallpapers.hpp"
 
 #include <memory>
 #include <optional>
@@ -10,7 +11,11 @@
 Manifest::Manifest(State currentState) : state(std::move(currentState)) {}
 
 void Manifest::loadWallpaper(
-    FilePath absPath, Hash hash, Timestamp createdAt, Visibility visibility, std::optional<Timestamp> lastShown
+    FilePath absPath,                  //
+    Hash hash,                         //
+    Timestamp createdAt,               //
+    Visibility visibility,             //
+    std::optional<Timestamp> lastShown //
 ) {
   auto existing = byHash.find(hash);
   if(existing != byHash.end()) {
@@ -41,7 +46,13 @@ void Manifest::registerWallpaper(
     Timestamp createdAt,  //
     Visibility visibility //
 ) {
-  loadWallpaper(std::move(absPath), hash, createdAt, visibility, std::nullopt);
+  loadWallpaper(
+      std::move(absPath), //
+      hash,               //
+      createdAt,          //
+      visibility,         //
+      std::nullopt        //
+  );
 }
 
 void Manifest::deleteWallpaper(Hash hash) {
