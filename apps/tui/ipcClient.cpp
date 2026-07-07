@@ -81,7 +81,7 @@ void IpcClient::updateMenuEntries(AppState& state) {
   for(const auto& wp : state.filteredWallpapers) {
     std::string checkbox = state.selectedHashes.contains(wp.hash) ? "[x]" : "[ ]";
     state.menuEntries.push_back(
-        std::format(" {} │ {:<8} │ {:<12} │ {}", checkbox, wp.hash.substr(0, 8), wp.visibility, wp.filename)
+        std::format("{} │ {:<8} │ {:<12} │ {}", checkbox, wp.hash.substr(0, 8), wp.visibility, wp.filename)
     );
   }
 }

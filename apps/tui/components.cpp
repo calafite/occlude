@@ -288,7 +288,7 @@ namespace {
                {hbox({text("Search (/): "), filterWithEvents->Render() | border}),
                 hbox({text("Sort Mode (S): ") | dim, text(sortStr) | bold}),
                 separator(),
-                hbox({text(" SEL │ HASH     │ VISIBILITY   │ FILENAME") | bold}),
+                hbox({text("  SEL │ HASH     │ VISIBILITY   │ FILENAME") | bold}),
                 wallpaperMenu->Render() | vscroll_indicator | frame | flex}
            ) |
         border | flex;
