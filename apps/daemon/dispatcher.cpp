@@ -192,7 +192,7 @@ std::string CommandDispatcher::handleDump(const CommandMessage& /*message*/) {
       Hash hash(*engine.get().manifest.state.publicCurrent);
       auto found = engine.get().manifest.find(hash);
       if(found) {
-        publicCurrentFilename = found->absPath.filename().string();
+        publicCurrentFilename = found.value().get().absPath.filename().string();
       }
     } catch(const std::exception& exception) {
       logging::error("Dump: Failed to resolve public current filename: {}", exception.what());
@@ -204,10 +204,10 @@ std::string CommandDispatcher::handleDump(const CommandMessage& /*message*/) {
       Hash hash(*engine.get().manifest.state.privateCurrent);
       auto found = engine.get().manifest.find(hash);
       if(found) {
-        privateCurrentFilename = found->absPath.filename().string();
+        privateCurrentFilename = found.value().get().absPath.filename().string();
       }
     } catch(const std::exception& exception) {
-      logging::error("Dump: Failde to resolve private current filename: {}", exception.what());
+      logging::error("Dump: Failed to resolve private current filename: {}", exception.what());
     }
   }
 

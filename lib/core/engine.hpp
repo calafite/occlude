@@ -137,7 +137,7 @@ struct Engine {
         auto found = manifest.find(targetHash);
 
         if(found) {
-          auto foundVisibility = found.value().visibility;
+          auto foundVisibility = found.value().get().visibility;
           const bool isSafeMode = manifest.state.stateMode == StateMode::Safe;
 
           bool isValid = false;
@@ -186,7 +186,7 @@ struct Engine {
         auto found = manifest.find(targetHash);
 
         if(found) {
-          auto foundVisibility = found.value().visibility;
+          auto foundVisibility = found.value().get().visibility;
           const bool isSafeMode = manifest.state.stateMode == StateMode::Safe;
 
           bool isValid = false;
@@ -260,12 +260,12 @@ struct Engine {
       throw std::runtime_error("Wallpaper not found in manifest");
     }
 
-    Visibility oldVisibility = found.value().visibility;
+    Visibility oldVisibility = found.value().get().visibility;
     if(oldVisibility == newVisibility) {
       return;
     }
 
-    FilePath currentPath = found.value().absPath;
+    FilePath currentPath = found.value().get().absPath;
 
     if(!fs.get().exists(currentPath)) {
       manifest.deleteWallpaper(hash);
@@ -306,7 +306,7 @@ struct Engine {
       throw std::runtime_error("Wallpaper not found in manifest");
     }
 
-    FilePath path = found.value().absPath;
+    FilePath path = found.value().get().absPath;
     if(fs.get().exists(path)) {
       fs.get().remove(path);
     }
@@ -321,7 +321,7 @@ struct Engine {
       throw std::runtime_error("Wallpaper not found in manifest");
     }
 
-    FilePath oldPath = found.value().absPath;
+    FilePath oldPath = found.value().get().absPath;
 
     if(!fs.get().exists(oldPath)) {
       manifest.deleteWallpaper(hash);

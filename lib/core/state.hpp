@@ -36,7 +36,7 @@ struct Manifest {
   std::vector<ConstReference<Wallpaper>> current() const;
   std::vector<ConstReference<Wallpaper>> all() const;
 
-  std::optional<const Wallpaper&> find(Hash const& hash) const {
+  std::optional<ConstReference<Wallpaper>> find(Hash const& hash) const {
     auto iterator = byHash.find(hash);
     bool exists = iterator != byHash.end();
     if(exists) {

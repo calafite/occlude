@@ -258,6 +258,12 @@ Hash VirtualFileSystem::hashFile(FilePath const& path) const {
 
 void VirtualFileSystem::unmount(FilePath const& root) {
   std::erase_if(files, [&](auto const& entry) {
-    return std::ranges::starts_with(entry.first, root);
+    auto it1 = entry.first.begin();
+    auto it2 = root.begin();
+    while(it2 != root.end() && it1 != entry.first.end() && *it1 == *it2) {
+      ++it1;
+      ++it2;
+    }
+    return it2 == root.end();
   });
 }
